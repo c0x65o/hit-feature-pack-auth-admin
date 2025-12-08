@@ -1,80 +1,91 @@
 # Feature Pack: auth-admin
-# Admin dashboard for users, sessions, 2FA management
+# Admin dashboard for users, sessions, audit logs
 
 name: auth-admin
-version: 1.0.0
-description: "Admin dashboard for users, sessions, 2FA"
+version: 2.0.0
+description: Admin dashboard for user management, sessions, and audit logs
 
-# What this pack provides
-surfaces:
-  pages:
-    - id: auth.admin.dashboard
-      path: /admin/dashboard
-      generator: dashboard
-    - id: auth.admin.users
-      path: /admin/users
-      generator: users
-    - id: auth.admin.user-detail
-      path: /admin/users/[email]
-      generator: userDetail
-    - id: auth.admin.sessions
-      path: /admin/sessions
-      generator: sessions
-    - id: auth.admin.audit-log
-      path: /admin/audit-log
-      generator: auditLog
-    - id: auth.admin.invites
-      path: /admin/invites
-      generator: invites
+# Route definitions - mapped to React components
+routes:
+  - path: /admin
+    page: Dashboard
+    roles: [admin]
+  - path: /admin/users
+    page: Users
+    roles: [admin]
+  - path: /admin/users/[email]
+    page: UserDetail
+    roles: [admin]
+  - path: /admin/sessions
+    page: Sessions
+    roles: [admin]
+  - path: /admin/audit-log
+    page: AuditLog
+    roles: [admin]
+  - path: /admin/invites
+    page: Invites
+    roles: [admin]
 
-# What this pack requires
-dependencies:
-  modules:
-    - name: auth
-      features: [password_login, session_management]
-  feature_packs:
-    - name: nav-shell
+# Navigation contributions
+nav:
+  - id: admin
+    label: Admin
+    path: /admin
+    icon: shield
+    roles: [admin]
+    children:
+      - label: Dashboard
+        path: /admin
+        icon: layout-dashboard
+      - label: Users
+        path: /admin/users
+        icon: users
+      - label: Sessions
+        path: /admin/sessions
+        icon: key
+      - label: Audit Log
+        path: /admin/audit-log
+        icon: file-text
+      - label: Invites
+        path: /admin/invites
+        icon: mail
+
+# Dependencies
+requires:
+  modules: [auth]
 
 # Configurable options
 config:
-  defaults:
-    show_2fa_column: true
-    users_per_page: 25
-    sessions_per_page: 50
-    show_oauth_status: true
-    allow_user_creation: true
-    allow_user_deletion: true
-    allow_password_reset: true
-    allow_session_revoke: true
-
   schema:
-    type: object
-    properties:
-      show_2fa_column:
-        type: boolean
-        description: "Show 2FA status column in users table"
-      users_per_page:
-        type: integer
-        minimum: 10
-        maximum: 100
-        description: "Number of users per page"
-      sessions_per_page:
-        type: integer
-        minimum: 10
-        maximum: 100
-        description: "Number of sessions per page"
-      show_oauth_status:
-        type: boolean
-        description: "Show OAuth provider connections"
-      allow_user_creation:
-        type: boolean
-        description: "Allow admins to create new users"
-      allow_user_deletion:
-        type: boolean
-        description: "Allow admins to delete users"
-      allow_password_reset:
-        type: boolean
-        description: "Allow admins to trigger password resets"
-      allow_session_revoke:
-        type: boolean
-        description: "Allow admins to revoke user sessions"
+    show_2fa_column:
+      type: boolean
+      default: true
+      description: Show 2FA status column in users table
+    users_per_page:
+      type: number
+      default: 25
+      description: Number of users per page
+    sessions_per_page:
+      type: number
+      default: 50
+      description: Number of sessions per page
+    show_oauth_status:
+      type: boolean
+      default: true
+      description: Show OAuth provider connections
+    allow_user_creation:
+      type: boolean
+      default: true
+      description: Allow admins to create new users
+    allow_user_deletion:
+      type: boolean
+      default: true
+      description: Allow admins to delete users
+    allow_password_reset:
+      type: boolean
+      default: true
+      description: Allow admins to trigger password resets
+    allow_session_revoke:
+      type: boolean
+      default: true
+      description: Allow admins to revoke user sessions

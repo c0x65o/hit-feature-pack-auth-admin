@@ -1,53 +1,29 @@
 /**
- * Navigation contributions for auth-admin feature pack
+ * Navigation configuration for auth-admin feature pack
  */
 
-import type { NavContribution } from '@hit/feature-pack-types';
+export interface NavItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: string;
+  roles?: string[];
+  children?: Omit<NavItem, 'children' | 'id'>[];
+}
 
-export const navContributions: NavContribution[] = [
+export const nav: NavItem[] = [
   {
-    id: 'auth.admin.dashboard',
-    label: 'Dashboard',
-    path: '/admin/dashboard',
-    slots: ['sidebar.primary'],
-    permissions: ['role:admin'],
-    order: 10,
-    icon: 'dashboard',
-  },
-  {
-    id: 'auth.admin.users',
-    label: 'Users',
-    path: '/admin/users',
-    slots: ['sidebar.primary'],
-    permissions: ['role:admin'],
-    order: 20,
-    icon: 'users',
-  },
-  {
-    id: 'auth.admin.sessions',
-    label: 'Sessions',
-    path: '/admin/sessions',
-    slots: ['sidebar.primary'],
-    permissions: ['role:admin'],
-    order: 30,
-    icon: 'key',
-  },
-  {
-    id: 'auth.admin.invites',
-    label: 'Invites',
-    path: '/admin/invites',
-    slots: ['sidebar.primary'],
-    permissions: ['role:admin'],
-    order: 40,
-    icon: 'mail',
-  },
-  {
-    id: 'auth.admin.audit-log',
-    label: 'Audit Log',
-    path: '/admin/audit-log',
-    slots: ['sidebar.primary'],
-    permissions: ['role:admin'],
-    order: 50,
-    icon: 'file-text',
+    id: 'admin',
+    label: 'Admin',
+    path: '/admin',
+    icon: 'shield',
+    roles: ['admin'],
+    children: [
+      { label: 'Dashboard', path: '/admin', icon: 'layout-dashboard' },
+      { label: 'Users', path: '/admin/users', icon: 'users' },
+      { label: 'Sessions', path: '/admin/sessions', icon: 'key' },
+      { label: 'Audit Log', path: '/admin/audit-log', icon: 'file-text' },
+      { label: 'Invites', path: '/admin/invites', icon: 'mail' },
+    ],
   },
 ];
