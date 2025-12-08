@@ -20,6 +20,12 @@ surfaces:
     - id: auth.admin.sessions
       path: /admin/sessions
       generator: sessions
+    - id: auth.admin.audit-log
+      path: /admin/audit-log
+      generator: auditLog
+    - id: auth.admin.invites
+      path: /admin/invites
+      generator: invites
 
 # What this pack requires
 dependencies:

@@ -8,6 +8,8 @@ import { dashboard } from './pages/dashboard';
 import { users } from './pages/users';
 import { userDetail } from './pages/userDetail';
 import { sessions } from './pages/sessions';
+import { auditLog } from './pages/audit-log';
+import { invites } from './pages/invites';
 import { navContributions } from './nav';
 import { configSchema, configDefaults } from './config';
 import type { FeaturePackModule, FeaturePackMetadata } from '@hit/feature-pack-types';
@@ -18,6 +20,8 @@ export const pages = {
   users,
   userDetail,
   sessions,
+  auditLog,
+  invites,
 };
 
 // Navigation contributions

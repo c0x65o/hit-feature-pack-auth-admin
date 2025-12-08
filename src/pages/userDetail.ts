@@ -8,6 +8,10 @@ interface AuthAdminOptions {
   allow_password_reset?: boolean;
   allow_user_deletion?: boolean;
   allow_session_revoke?: boolean;
+  show_impersonate_button?: boolean;
+  impersonate_warning_text?: string;
+  impersonate_banner_color?: string;
+  impersonate_end_button?: boolean;
 }
 
 export async function userDetail(ctx: RequestContext): Promise<UISpec> {
@@ -120,6 +124,28 @@ export async function userDetail(ctx: RequestContext): Promise<UISpec> {
                         confirm: 'This will log the user out of all devices. Continue?',
                         onSuccess: {
                           type: 'refresh' as const,
+                        },
+                      },
+                    },
+                  ]
+                : []),
+              ...(opts.show_impersonate_button
+                ? [
+                    {
+                      type: 'Button' as const,
+                      label: 'Impersonate User',
+                      variant: 'outline' as const,
+                      icon: 'user-cog',
+                      onClick: {
+                        type: 'api' as const,
+                        method: 'POST' as const,
+                        endpoint: `${authUrl}/impersonate/start`,
+                        body: {
+                          user_email: '{email}',
+                        },
+                        onSuccess: {
+                          type: 'updateAuth',
+                          redirect: '/',
                         },
                       },
                     },

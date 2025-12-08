@@ -32,4 +32,22 @@ export const navContributions: NavContribution[] = [
     order: 30,
     icon: 'key',
   },
+  {
+    id: 'auth.admin.invites',
+    label: 'Invites',
+    path: '/admin/invites',
+    slots: ['sidebar.primary'],
+    permissions: ['role:admin'],
+    order: 40,
+    icon: 'mail',
+  },
+  {
+    id: 'auth.admin.audit-log',
+    label: 'Audit Log',
+    path: '/admin/audit-log',
+    slots: ['sidebar.primary'],
+    permissions: ['role:admin'],
+    order: 50,
+    icon: 'file-text',
+  },
 ];
