@@ -85,7 +85,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
       label: 'User',
       render: (entry: AuditLogEntry) => (
         <button
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          className="text-[var(--hit-primary)] hover:text-[var(--hit-primary-hover)]"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/admin/users/${encodeURIComponent(entry.user_email)}`);
@@ -183,26 +183,26 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500">Time</label>
-                <p className="text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)]">Time</label>
+                <p className="text-[var(--hit-foreground)]">
                   {formatDate(selectedEntry.created_at)}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">User</label>
-                <p className="text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)]">User</label>
+                <p className="text-[var(--hit-foreground)]">
                   {selectedEntry.user_email}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">Event</label>
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)]">Event</label>
                 <Badge variant={getEventBadgeVariant(selectedEntry.event_type)}>
                   {formatEventType(selectedEntry.event_type)}
                 </Badge>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-500">IP Address</label>
-                <p className="font-mono text-gray-900 dark:text-gray-100">
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)]">IP Address</label>
+                <p className="font-mono text-[var(--hit-foreground)]">
                   {selectedEntry.ip_address}
                 </p>
               </div>
@@ -210,8 +210,8 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
 
             {selectedEntry.user_agent && (
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">User Agent</label>
-                <p className="text-sm text-gray-600 dark:text-gray-400 break-all">
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)] mb-1">User Agent</label>
+                <p className="text-sm text-[var(--hit-muted-foreground)] break-all">
                   {selectedEntry.user_agent}
                 </p>
               </div>
@@ -219,8 +219,8 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
 
             {selectedEntry.details && Object.keys(selectedEntry.details).length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Additional Details</label>
-                <pre className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-sm overflow-auto">
+                <label className="block text-sm font-medium text-[var(--hit-muted-foreground)] mb-1">Additional Details</label>
+                <pre className="bg-[var(--hit-muted)] rounded-lg p-3 text-sm overflow-auto">
                   {JSON.stringify(selectedEntry.details, null, 2)}
                 </pre>
               </div>

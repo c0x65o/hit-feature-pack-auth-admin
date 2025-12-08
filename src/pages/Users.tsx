@@ -115,7 +115,7 @@ export function Users({ onNavigate }: UsersProps) {
         <div className="flex items-center gap-2">
           <span className="font-medium">{user.email}</span>
           {user.locked && (
-            <Lock className="w-3 h-3 text-red-500" />
+            <Lock className="w-3 h-3 text-[var(--hit-error)]" />
           )}
         </div>
       ),
@@ -230,7 +230,7 @@ export function Users({ onNavigate }: UsersProps) {
               variant="ghost"
               size="sm"
               icon={Trash2}
-              className="text-red-500 hover:text-red-600"
+              className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedUser(user);
@@ -265,29 +265,29 @@ export function Users({ onNavigate }: UsersProps) {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
               Email
             </label>
             <input
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
               placeholder="user@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
               Initial Password
             </label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
               placeholder="Minimum 8 characters"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[var(--hit-muted-foreground)]">
               User can change this after first login
             </p>
           </div>
@@ -314,9 +314,9 @@ export function Users({ onNavigate }: UsersProps) {
           </>
         }
       >
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-[var(--hit-muted-foreground)]">
           Are you sure you want to delete{' '}
-          <strong className="text-gray-900 dark:text-gray-100">
+          <strong className="text-[var(--hit-foreground)]">
             {selectedUser?.email}
           </strong>
           ? This action cannot be undone.

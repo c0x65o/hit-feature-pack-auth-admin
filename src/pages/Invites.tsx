@@ -96,7 +96,7 @@ export function Invites({ onNavigate }: InvitesProps) {
       label: 'Email',
       render: (invite: Invite) => (
         <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-gray-400" />
+          <Mail className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
           <span className="font-medium">{invite.email}</span>
         </div>
       ),
@@ -119,7 +119,7 @@ export function Invites({ onNavigate }: InvitesProps) {
       label: 'Invited By',
       render: (invite: Invite) => (
         <button
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          className="text-[var(--hit-primary)] hover:text-[var(--hit-primary-hover)]"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/admin/users/${encodeURIComponent(invite.invited_by)}`);
@@ -139,7 +139,7 @@ export function Invites({ onNavigate }: InvitesProps) {
       label: 'Expires',
       render: (invite: Invite) => (
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-400" />
+          <Clock className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
           <span>{formatDate(invite.expires_at)}</span>
         </div>
       ),
@@ -211,7 +211,7 @@ export function Invites({ onNavigate }: InvitesProps) {
                 variant="ghost"
                 size="sm"
                 icon={Trash2}
-                className="text-red-500 hover:text-red-600"
+                className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRevokeInvite(invite.id);
@@ -249,34 +249,34 @@ export function Invites({ onNavigate }: InvitesProps) {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
               Email Address
             </label>
             <input
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
               placeholder="user@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-2">
               Roles
             </label>
             <div className="space-y-2">
               {['admin', 'user', 'moderator', 'viewer'].map((role) => (
                 <label
                   key={role}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-[var(--hit-border)] cursor-pointer hover:bg-[var(--hit-surface-hover)]"
                 >
                   <input
                     type="checkbox"
                     checked={newRoles.includes(role)}
                     onChange={() => toggleRole(role)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-[var(--hit-primary)] rounded focus:ring-[var(--hit-primary)]"
                   />
-                  <span className="text-gray-900 dark:text-gray-100 capitalize">
+                  <span className="text-[var(--hit-foreground)] capitalize">
                     {role}
                   </span>
                 </label>

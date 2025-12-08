@@ -50,9 +50,9 @@ export function Sessions({ onNavigate }: SessionsProps) {
   const getDeviceIcon = (userAgent: string) => {
     const ua = userAgent?.toLowerCase() || '';
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
-      return <Smartphone className="w-4 h-4 text-gray-400" />;
+      return <Smartphone className="w-4 h-4 text-[var(--hit-muted-foreground)]" />;
     }
-    return <Monitor className="w-4 h-4 text-gray-400" />;
+    return <Monitor className="w-4 h-4 text-[var(--hit-muted-foreground)]" />;
   };
 
   const getDeviceName = (userAgent: string) => {
@@ -77,7 +77,7 @@ export function Sessions({ onNavigate }: SessionsProps) {
       label: 'User',
       render: (session: Session) => (
         <button
-          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          className="text-[var(--hit-primary)] hover:text-[var(--hit-primary-hover)]"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/admin/users/${encodeURIComponent(session.user_email)}`);
@@ -102,7 +102,7 @@ export function Sessions({ onNavigate }: SessionsProps) {
       label: 'IP Address',
       render: (session: Session) => (
         <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-gray-400" />
+          <Globe className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
           <span className="font-mono text-sm">{session.ip_address}</span>
         </div>
       ),
@@ -169,7 +169,7 @@ export function Sessions({ onNavigate }: SessionsProps) {
               variant="ghost"
               size="sm"
               icon={Trash2}
-              className="text-red-500 hover:text-red-600"
+              className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRevokeSession(session.id);

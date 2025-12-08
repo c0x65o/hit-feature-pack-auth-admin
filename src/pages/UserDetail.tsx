@@ -142,8 +142,8 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   if (loading) {
     return (
       <div className="animate-pulse space-y-6">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
-        <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-8 bg-[var(--hit-muted)] rounded w-1/4" />
+        <div className="h-64 bg-[var(--hit-muted)] rounded" />
       </div>
     );
   }
@@ -151,7 +151,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   if (error || !user) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">{error?.message || 'User not found'}</p>
+        <p className="text-[var(--hit-error)]">{error?.message || 'User not found'}</p>
         <Button variant="outline" onClick={() => navigate('/admin/users')} className="mt-4">
           Back to Users
         </Button>
@@ -239,22 +239,22 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       {/* User Info Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Account Details */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-[var(--hit-foreground)] mb-4">
             Account Details
           </h3>
           <dl className="space-y-4">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-gray-400" />
+              <Mail className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
               <div>
-                <dt className="text-sm text-gray-500">Email</dt>
-                <dd className="text-gray-900 dark:text-gray-100">{user.email}</dd>
+                <dt className="text-sm text-[var(--hit-muted-foreground)]">Email</dt>
+                <dd className="text-[var(--hit-foreground)]">{user.email}</dd>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-gray-400" />
+              <Shield className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
               <div>
-                <dt className="text-sm text-gray-500">Email Verified</dt>
+                <dt className="text-sm text-[var(--hit-muted-foreground)]">Email Verified</dt>
                 <dd>
                   <Badge variant={user.email_verified ? 'success' : 'warning'}>
                     {user.email_verified ? 'Verified' : 'Pending'}
@@ -263,9 +263,9 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Key className="w-5 h-5 text-gray-400" />
+              <Key className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
               <div>
-                <dt className="text-sm text-gray-500">Two-Factor Auth</dt>
+                <dt className="text-sm text-[var(--hit-muted-foreground)]">Two-Factor Auth</dt>
                 <dd>
                   <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
                     {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
@@ -274,9 +274,9 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-gray-400" />
+              <Lock className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
               <div>
-                <dt className="text-sm text-gray-500">Account Status</dt>
+                <dt className="text-sm text-[var(--hit-muted-foreground)]">Account Status</dt>
                 <dd>
                   <Badge variant={user.locked ? 'error' : 'success'}>
                     {user.locked ? 'Locked' : 'Active'}
@@ -288,9 +288,9 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
         </div>
 
         {/* Roles & Permissions */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6">
+        <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-[var(--hit-foreground)]">
               Roles & Permissions
             </h3>
             <Button variant="ghost" size="sm" onClick={openRolesModal}>
@@ -299,7 +299,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {user.roles.length === 0 ? (
-              <span className="text-gray-500">No roles assigned</span>
+              <span className="text-[var(--hit-muted-foreground)]">No roles assigned</span>
             ) : (
               user.roles.map((role) => (
                 <Badge
@@ -313,24 +313,24 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             )}
           </div>
 
-          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-6 mb-2">
+          <h4 className="text-sm font-medium text-[var(--hit-foreground)] mt-6 mb-2">
             Activity
           </h4>
           <dl className="space-y-3">
             <div className="flex items-center gap-3">
-              <Clock className="w-4 h-4 text-gray-400" />
+              <Clock className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
               <div className="text-sm">
-                <dt className="text-gray-500 inline">Created: </dt>
-                <dd className="text-gray-900 dark:text-gray-100 inline">
+                <dt className="text-[var(--hit-muted-foreground)] inline">Created: </dt>
+                <dd className="text-[var(--hit-foreground)] inline">
                   {formatDate(user.created_at)}
                 </dd>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Globe className="w-4 h-4 text-gray-400" />
+              <Globe className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
               <div className="text-sm">
-                <dt className="text-gray-500 inline">Last Login: </dt>
-                <dd className="text-gray-900 dark:text-gray-100 inline">
+                <dt className="text-[var(--hit-muted-foreground)] inline">Last Login: </dt>
+                <dd className="text-[var(--hit-foreground)] inline">
                   {formatDate(user.last_login)}
                 </dd>
               </div>
@@ -339,7 +339,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
 
           {user.oauth_providers && user.oauth_providers.length > 0 && (
             <>
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-6 mb-2">
+              <h4 className="text-sm font-medium text-[var(--hit-foreground)] mt-6 mb-2">
                 Connected Accounts
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -355,9 +355,9 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       </div>
 
       {/* Active Sessions */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg">
+        <div className="p-4 border-b border-[var(--hit-border)] flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-[var(--hit-foreground)]">
             Active Sessions
           </h3>
           <div className="flex items-center gap-2">
@@ -418,9 +418,9 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           </>
         }
       >
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-[var(--hit-muted-foreground)]">
           Are you sure you want to delete{' '}
-          <strong className="text-gray-900 dark:text-gray-100">{user.email}</strong>?
+          <strong className="text-[var(--hit-foreground)]">{user.email}</strong>?
           This action cannot be undone.
         </p>
       </Modal>
@@ -449,15 +449,15 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           {['admin', 'user', 'moderator', 'viewer'].map((role) => (
             <label
               key={role}
-              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg border border-[var(--hit-border)] cursor-pointer hover:bg-[var(--hit-surface-hover)]"
             >
               <input
                 type="checkbox"
                 checked={newRoles.includes(role)}
                 onChange={() => toggleRole(role)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-[var(--hit-primary)] rounded focus:ring-[var(--hit-primary)]"
               />
-              <span className="text-gray-900 dark:text-gray-100 capitalize">
+              <span className="text-[var(--hit-foreground)] capitalize">
                 {role}
               </span>
             </label>
