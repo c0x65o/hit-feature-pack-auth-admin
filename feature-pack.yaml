@@ -26,33 +26,54 @@ routes:
     page: Invites
     roles: [admin]
 
-# Navigation contributions
+# Navigation contributions - auto-added to shell sidebar
 nav:
   - id: admin
     label: Admin
-    path: /admin
-    icon: shield
+    icon: Shield
     roles: [admin]
+    showWhen: authenticated
     children:
       - label: Dashboard
         path: /admin
-        icon: layout-dashboard
+        icon: LayoutDashboard
       - label: Users
         path: /admin/users
-        icon: users
+        icon: Users
       - label: Sessions
         path: /admin/sessions
-        icon: key
+        icon: Key
       - label: Audit Log
         path: /admin/audit-log
-        icon: file-text
+        icon: FileText
       - label: Invites
         path: /admin/invites
-        icon: mail
+        icon: Mail
+
+# Notification types this pack can emit
+notifications:
+  types:
+    - id: new_user
+      title: New User Registered
+      icon: UserPlus
+      priority: medium
+    - id: login_failed
+      title: Failed Login Attempt
+      icon: AlertTriangle
+      priority: high
+    - id: user_locked
+      title: User Account Locked
+      icon: Lock
+      priority: high
 
 # Dependencies
 requires:
   modules: [auth]
+
+# Dependencies on other feature packs
+dependencies:
+  feature_packs:
+    - name: dashboard-shell
 
 # Configurable options
 config:
