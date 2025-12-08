@@ -50,24 +50,24 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
+        className="fixed inset-0 bg-[var(--hit-modal-backdrop)] transition-opacity"
         onClick={onClose}
       />
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl`}
+          className={`relative w-full ${sizeClasses[size]} bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg shadow-xl`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-between p-4 border-b border-[var(--hit-border)]">
+            <h3 className="text-lg font-semibold text-[var(--hit-foreground)]">
               {title}
             </h3>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-1 rounded-lg hover:bg-[var(--hit-surface-hover)] transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
             </button>
           </div>
 
@@ -76,7 +76,7 @@ export function Modal({
 
           {/* Footer */}
           {footer && (
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-[var(--hit-border)]">
               {footer}
             </div>
           )}
