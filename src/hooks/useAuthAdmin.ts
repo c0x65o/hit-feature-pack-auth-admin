@@ -73,13 +73,12 @@ interface UseQueryOptions {
 // Get the auth module URL from environment or defaults
 function getAuthUrl(): string {
   if (typeof window !== 'undefined') {
-    return (
-      (window as unknown as Record<string, string>).NEXT_PUBLIC_HIT_AUTH_URL ||
-      process.env.NEXT_PUBLIC_HIT_AUTH_URL ||
-      '/api/proxy/auth'
-    );
+    // Client-side: check window config or default to proxy
+    const win = window as unknown as Record<string, string>;
+    return win.NEXT_PUBLIC_HIT_AUTH_URL || '/api/proxy/auth';
   }
-  return process.env.HIT_AUTH_URL || '/api/proxy/auth';
+  // Server-side: use proxy (env vars handled by Next.js)
+  return '/api/proxy/auth';
 }
 
 async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
