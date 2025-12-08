@@ -144,8 +144,8 @@ export async function userDetail(ctx: RequestContext): Promise<UISpec> {
                           user_email: '{email}',
                         },
                         onSuccess: {
-                          type: 'updateAuth',
-                          redirect: '/',
+                          type: 'navigate' as const,
+                          to: '/',
                         },
                       },
                     },
