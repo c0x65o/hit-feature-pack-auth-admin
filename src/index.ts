@@ -12,7 +12,7 @@ import { auditLog } from './pages/audit-log';
 import { invites } from './pages/invites';
 import { navContributions } from './nav';
 import { configSchema, configDefaults } from './config';
-import type { FeaturePackModule, FeaturePackMetadata } from '@hit/feature-pack-types';
+import type { FeaturePackModule, FeaturePackMetadata, RouteDefinition } from '@hit/feature-pack-types';
 
 // Page generators - ui-render calls these
 export const pages = {
@@ -23,6 +23,19 @@ export const pages = {
   auditLog,
   invites,
 };
+
+// Route definitions - maps paths to page generators
+// Note: auth-admin typically uses mount_base: /admin in hit.yaml
+// These paths are relative - mount_base is prepended by ui-render
+export const routes: RouteDefinition[] = [
+  { path: '/admin', page: 'dashboard', priority: 100 },
+  { path: '/admin/dashboard', page: 'dashboard', priority: 100 },
+  { path: '/admin/users', page: 'users', priority: 100 },
+  { path: '/admin/users/:email', page: 'userDetail', priority: 50 },
+  { path: '/admin/sessions', page: 'sessions', priority: 100 },
+  { path: '/admin/audit-log', page: 'auditLog', priority: 100 },
+  { path: '/admin/invites', page: 'invites', priority: 100 },
+];
 
 // Navigation contributions
 export { navContributions };
@@ -44,6 +57,7 @@ const authAdminModule: FeaturePackModule = {
   configSchema,
   configDefaults,
   metadata,
+  routes,
 };
 
 export default authAdminModule;

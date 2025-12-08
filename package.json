@@ -1,6 +1,6 @@
 {
   "name": "@hit/feature-pack-auth-admin",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Admin dashboard feature pack for user management, sessions, and 2FA",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
