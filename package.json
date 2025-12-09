@@ -1,16 +1,16 @@
 {
   "name": "@hit/feature-pack-auth-admin",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "Admin dashboard feature pack for user management, sessions, and audit logs. Uses @hit/ui-kit for shell-agnostic UI.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "require": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "files": [
@@ -45,15 +45,5 @@
     "dashboard",
     "ui-kit"
   ],
-  "license": "MIT",
-  "_original_main": "dist/index.js",
-  "_original_types": "dist/index.d.ts",
-  "_original_exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
-    }
-  }
+  "license": "MIT"
 }
