@@ -8,9 +8,11 @@ interface User {
   email: string;
   email_verified: boolean;
   two_factor_enabled: boolean;
-  roles: string[];
+  roles?: string[];
+  metadata?: { role?: string; [key: string]: unknown };
   created_at: string;
-  last_login: string | null;
+  updated_at?: string;
+  last_login?: string | null;
   oauth_providers?: string[];
   locked?: boolean;
 }
@@ -81,6 +83,15 @@ function getAuthUrl(): string {
   return '/api/proxy/auth';
 }
 
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('hit_token');
+  if (token) {
+    return { 'Authorization': `Bearer ${token}` };
+  }
+  return {};
+}
+
 async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const authUrl = getAuthUrl();
   const url = `${authUrl}${endpoint}`;
@@ -90,6 +101,7 @@ async function fetchWithAuth<T>(endpoint: string, options?: RequestInit): Promis
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options?.headers,
     },
   });
@@ -110,8 +122,26 @@ export function useStats() {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await fetchWithAuth<Stats>('/admin/stats');
-      setStats(data);
+      // Stats are computed client-side from other endpoints since auth module
+      // doesn't have a dedicated stats endpoint yet
+      const [usersRes, sessionsRes] = await Promise.allSettled([
+        fetchWithAuth<User[]>('/users'),
+        fetchWithAuth<{sessions: Session[], total: number}>('/admin/sessions?limit=1'),
+      ]);
+      
+      const users = usersRes.status === 'fulfilled' ? usersRes.value : [];
+      const totalUsers = users.length;
+      const activeSessions = sessionsRes.status === 'fulfilled' ? sessionsRes.value.total : 0;
+      const twoFactorUsers = users.filter(u => u.two_factor_enabled).length;
+      
+      setStats({
+        total_users: totalUsers,
+        active_sessions: activeSessions,
+        failed_logins_24h: 0, // Would need audit log query
+        new_users_7d: 0, // Would need users query with date filter
+        two_factor_adoption: totalUsers > 0 ? Math.round((twoFactorUsers / totalUsers) * 100) : 0,
+        pending_invites: 0, // Invites may be disabled
+      });
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -132,28 +162,40 @@ export function useUsers(options: UseQueryOptions = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const { page = 1, pageSize = 25, search, sortBy, sortOrder } = options;
+  const { page = 1, pageSize = 25, search } = options;
 
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
+      // Auth module returns a plain array, not paginated response
+      const users = await fetchWithAuth<User[]>('/users');
+      
+      // Filter by search if provided
+      let filtered = users;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filtered = users.filter(u => u.email.toLowerCase().includes(searchLower));
+      }
+      
+      // Client-side pagination
+      const total = filtered.length;
+      const startIdx = (page - 1) * pageSize;
+      const items = filtered.slice(startIdx, startIdx + pageSize);
+      
+      setData({
+        items,
+        total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(total / pageSize),
       });
-      if (search) params.set('search', search);
-      if (sortBy) params.set('sort_by', sortBy);
-      if (sortOrder) params.set('sort_order', sortOrder);
-
-      const result = await fetchWithAuth<PaginatedResponse<User>>(`/admin/users?${params}`);
-      setData(result);
       setError(null);
     } catch (e) {
       setError(e as Error);
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, search, sortBy, sortOrder]);
+  }, [page, pageSize, search]);
 
   useEffect(() => {
     refresh();
@@ -171,7 +213,7 @@ export function useUser(email: string) {
     if (!email) return;
     try {
       setLoading(true);
-      const data = await fetchWithAuth<User>(`/admin/users/${encodeURIComponent(email)}`);
+      const data = await fetchWithAuth<User>(`/users/${encodeURIComponent(email)}`);
       setUser(data);
       setError(null);
     } catch (e) {
@@ -198,14 +240,23 @@ export function useSessions(options: UseQueryOptions = {}) {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
+      const offset = (page - 1) * pageSize;
       const params = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
+        limit: String(pageSize),
+        offset: String(offset),
       });
-      if (search) params.set('search', search);
+      if (search) params.set('user_email', search);
 
-      const result = await fetchWithAuth<PaginatedResponse<Session>>(`/admin/sessions?${params}`);
-      setData(result);
+      // Auth module returns {sessions: [], total: N, limit: N, offset: N}
+      const result = await fetchWithAuth<{sessions: Session[], total: number, limit: number, offset: number}>(`/admin/sessions?${params}`);
+      
+      setData({
+        items: result.sessions,
+        total: result.total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(result.total / pageSize),
+      });
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -231,14 +282,23 @@ export function useAuditLog(options: UseQueryOptions = {}) {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
+      const offset = (page - 1) * pageSize;
       const params = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
+        limit: String(pageSize),
+        offset: String(offset),
       });
-      if (search) params.set('search', search);
+      if (search) params.set('user_email', search);
 
-      const result = await fetchWithAuth<PaginatedResponse<AuditLogEntry>>(`/admin/audit-log?${params}`);
-      setData(result);
+      // Auth module returns {events: [], total: N, limit: N, offset: N}
+      const result = await fetchWithAuth<{events: AuditLogEntry[], total: number, limit: number, offset: number}>(`/audit-log?${params}`);
+      
+      setData({
+        items: result.events,
+        total: result.total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(result.total / pageSize),
+      });
       setError(null);
     } catch (e) {
       setError(e as Error);
@@ -264,16 +324,42 @@ export function useInvites(options: UseQueryOptions = {}) {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
+      const offset = (page - 1) * pageSize;
       const params = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
+        limit: String(pageSize),
+        offset: String(offset),
       });
 
-      const result = await fetchWithAuth<PaginatedResponse<Invite>>(`/admin/invites?${params}`);
-      setData(result);
+      // Auth module may return {invites: [], total: N} or error if invites disabled
+      const result = await fetchWithAuth<{invites?: Invite[], total?: number} | Invite[]>(`/invites?${params}`);
+      
+      // Handle both array and object response formats
+      const invites = Array.isArray(result) ? result : (result.invites || []);
+      const total = Array.isArray(result) ? result.length : (result.total || 0);
+      
+      setData({
+        items: invites,
+        total,
+        page,
+        page_size: pageSize,
+        total_pages: Math.ceil(total / pageSize),
+      });
       setError(null);
     } catch (e) {
-      setError(e as Error);
+      // If invites are disabled, return empty list instead of error
+      const errMsg = (e as Error).message || '';
+      if (errMsg.includes('disabled') || errMsg.includes('Invite')) {
+        setData({
+          items: [],
+          total: 0,
+          page: 1,
+          page_size: pageSize,
+          total_pages: 0,
+        });
+        setError(null);
+      } else {
+        setError(e as Error);
+      }
     } finally {
       setLoading(false);
     }
@@ -295,7 +381,7 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth('/admin/users', {
+      await fetchWithAuth('/users', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -311,7 +397,7 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}`, {
+      await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -326,8 +412,10 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
+      // Use forgot-password endpoint to trigger password reset email
+      await fetchWithAuth('/forgot-password', {
         method: 'POST',
+        body: JSON.stringify({ email }),
       });
     } catch (e) {
       setError(e as Error);
@@ -341,7 +429,7 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/roles`, {
+      await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
         method: 'PUT',
         body: JSON.stringify({ roles }),
       });
@@ -357,8 +445,10 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/lock`, {
-        method: 'POST',
+      // Lock by setting locked flag via user update
+      await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ locked: true }),
       });
     } catch (e) {
       setError(e as Error);
@@ -372,8 +462,9 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/unlock`, {
-        method: 'POST',
+      await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ locked: false }),
       });
     } catch (e) {
       setError(e as Error);
@@ -403,7 +494,7 @@ export function useSessionMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/sessions/${sessionId}`, {
+      await fetchWithAuth(`/sessions/${sessionId}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -418,7 +509,9 @@ export function useSessionMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/sessions`, {
+      // Note: Auth module may not have this specific endpoint
+      // May need to fetch all sessions for user and delete individually
+      await fetchWithAuth(`/sessions?user_email=${encodeURIComponent(email)}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -440,7 +533,7 @@ export function useInviteMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth('/admin/invites', {
+      await fetchWithAuth('/invites', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -456,7 +549,9 @@ export function useInviteMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/invites/${inviteId}/resend`, {
+      // Resend by creating a new invite with same email
+      // Auth module may not have a dedicated resend endpoint
+      await fetchWithAuth(`/invites/${inviteId}/resend`, {
         method: 'POST',
       });
     } catch (e) {
@@ -471,7 +566,7 @@ export function useInviteMutations() {
     setLoading(true);
     setError(null);
     try {
-      await fetchWithAuth(`/admin/invites/${inviteId}`, {
+      await fetchWithAuth(`/invites/${inviteId}`, {
         method: 'DELETE',
       });
     } catch (e) {

@@ -220,7 +220,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Last Login</span>
-              <span className="text-gray-100">{formatDate(user.last_login)}</span>
+              <span className="text-gray-100">{formatDate(user.last_login ?? null)}</span>
             </div>
           </div>
         </Card>
@@ -235,7 +235,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           }
         >
           <div className="flex flex-wrap gap-2">
-            {user.roles.map((role) => (
+            {(user.roles || []).map((role) => (
               <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
                 {role}
               </Badge>
