@@ -67,7 +67,7 @@ export function Invites({ onNavigate }: InvitesProps) {
       title="Invitations"
       description="Manage user invitations"
       actions={
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button variant="secondary" onClick={() => refresh()}>
             <RefreshCw size={16} className="mr-2" />
             Refresh
@@ -149,7 +149,7 @@ export function Invites({ onNavigate }: InvitesProps) {
                   render: (_, row) => {
                     if (row.accepted_at) return null;
                     return (
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -182,14 +182,14 @@ export function Invites({ onNavigate }: InvitesProps) {
             />
 
             {data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between px-6 py-4 mt-6 border-t border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
                   >
@@ -197,7 +197,7 @@ export function Invites({ onNavigate }: InvitesProps) {
                   </Button>
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page >= data.total_pages}
                     onClick={() => setPage(page + 1)}
                   >
@@ -235,7 +235,7 @@ export function Invites({ onNavigate }: InvitesProps) {
             value={newRole}
             onChange={setNewRole}
           />
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setCreateModalOpen(false)}>
               Cancel
             </Button>

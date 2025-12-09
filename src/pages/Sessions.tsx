@@ -80,7 +80,7 @@ export function Sessions({ onNavigate }: SessionsProps) {
     >
       {/* Search */}
       <Card>
-        <div className="max-w-md">
+        <div className="max-w-md p-6">
           <Input
             label="Search Sessions"
             value={search}
@@ -187,14 +187,14 @@ export function Sessions({ onNavigate }: SessionsProps) {
             />
 
             {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between px-6 py-4 mt-6 border-t border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
                   >
@@ -202,7 +202,7 @@ export function Sessions({ onNavigate }: SessionsProps) {
                   </Button>
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page >= data.total_pages}
                     onClick={() => setPage(page + 1)}
                   >

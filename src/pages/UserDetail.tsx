@@ -168,7 +168,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       title={user.email}
       description={user.locked ? 'This account is locked' : undefined}
       actions={
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button variant="secondary" onClick={() => navigate('/admin/users')}>
             <ArrowLeft size={16} className="mr-2" />
             Back
@@ -191,7 +191,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       {/* User Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="Account Details">
-          <div className="space-y-4">
+          <div className="space-y-4 p-6">
             <div className="flex justify-between">
               <span className="text-gray-400">Email</span>
               <span className="text-gray-100">{user.email}</span>
@@ -228,13 +228,15 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
         <Card
           title="Roles"
           footer={
-            <Button variant="secondary" size="sm" onClick={openRolesModal}>
-              <Shield size={16} className="mr-2" />
-              Edit Roles
-            </Button>
+            <div className="px-6 py-4">
+              <Button variant="secondary" size="sm" onClick={openRolesModal}>
+                <Shield size={16} className="mr-2" />
+                Edit Roles
+              </Button>
+            </div>
           }
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 p-6">
             {(user.roles || []).map((role) => (
               <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
                 {role}
@@ -249,18 +251,22 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
         title="Active Sessions"
         footer={
           sessionsData?.items?.length ? (
-            <Button variant="danger" size="sm" onClick={handleRevokeAllSessions}>
-              Revoke All Sessions
-            </Button>
+            <div className="px-6 py-4">
+              <Button variant="danger" size="sm" onClick={handleRevokeAllSessions}>
+                Revoke All Sessions
+              </Button>
+            </div>
           ) : undefined
         }
       >
         {!sessionsData?.items?.length ? (
-          <EmptyState
-            icon={<Monitor size={48} />}
-            title="No active sessions"
-            description="This user has no active sessions"
-          />
+          <div className="p-6">
+            <EmptyState
+              icon={<Monitor size={48} />}
+              title="No active sessions"
+              description="This user has no active sessions"
+            />
+          </div>
         ) : (
           <Table
             columns={[
@@ -327,7 +333,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           <p className="text-gray-300">
             Are you sure you want to delete <strong className="text-gray-100">{user.email}</strong>?
           </p>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>
@@ -356,7 +362,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               />
             ))}
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setRolesModalOpen(false)}>
               Cancel
             </Button>

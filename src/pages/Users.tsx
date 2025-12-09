@@ -106,7 +106,7 @@ export function Users({ onNavigate }: UsersProps) {
     >
       {/* Search */}
       <Card>
-        <div className="max-w-md">
+        <div className="max-w-md p-6">
           <Input
             label="Search Users"
             value={search}
@@ -194,7 +194,7 @@ export function Users({ onNavigate }: UsersProps) {
                   render: (_, row) => {
                     const user = row as unknown as User;
                     return (
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -246,14 +246,14 @@ export function Users({ onNavigate }: UsersProps) {
 
             {/* Pagination */}
             {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between px-6 py-4 mt-6 border-t border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages} ({data.total} users)
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
                   >
@@ -261,7 +261,7 @@ export function Users({ onNavigate }: UsersProps) {
                   </Button>
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="md"
                     disabled={page >= data.total_pages}
                     onClick={() => setPage(page + 1)}
                   >
@@ -301,7 +301,7 @@ export function Users({ onNavigate }: UsersProps) {
           <p className="text-xs text-gray-400">
             User can change this after first login
           </p>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setCreateModalOpen(false)}>
               Cancel
             </Button>
@@ -329,7 +329,7 @@ export function Users({ onNavigate }: UsersProps) {
             Are you sure you want to delete{' '}
             <strong className="text-gray-100">{selectedUser?.email}</strong>?
           </p>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>

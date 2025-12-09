@@ -72,13 +72,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     trend?: { value: string; direction: 'up' | 'down' };
   }) => (
     <Card>
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between p-6">
         <div>
           <p className="text-sm text-gray-400">{title}</p>
           <p className="text-2xl font-bold text-gray-100 mt-1">{value}</p>
           {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
           {trend && (
-            <div className="flex items-center gap-1 mt-2">
+            <div className="flex items-center gap-2 mt-2">
               {trend.direction === 'up' ? (
                 <TrendingUp size={14} className="text-green-500" />
               ) : (
@@ -156,7 +156,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Quick Actions */}
       <Card title="Quick Actions">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 p-6">
           <Button variant="secondary" onClick={() => navigate('/admin/users')}>
             <Users size={16} className="mr-2" />
             View All Users
@@ -182,17 +182,19 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Recent Activity */}
       <Card title="Recent Activity">
         {auditLoading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-12 p-6">
             <Spinner size="lg" />
           </div>
         ) : auditData?.items.length === 0 ? (
-          <EmptyState
-            icon={<Clock size={48} />}
-            title="No recent activity"
-            description="Activity will appear here when users interact with the system"
-          />
+          <div className="p-6">
+            <EmptyState
+              icon={<Clock size={48} />}
+              title="No recent activity"
+              description="Activity will appear here when users interact with the system"
+            />
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 p-6">
             {auditData?.items.map((entry, i) => (
               <div
                 key={entry.id || i}

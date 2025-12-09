@@ -74,7 +74,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
       title="Audit Log"
       description="Security events and user activity"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={handleExport} disabled={!data?.items?.length}>
             <Download size={16} className="mr-2" />
             Export CSV
@@ -88,7 +88,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     >
       {/* Search */}
       <Card>
-        <div className="max-w-md">
+        <div className="max-w-md p-6">
           <Input
             label="Search Audit Log"
             value={search}
@@ -247,7 +247,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
               </div>
             )}
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end gap-3 pt-4">
               <Button variant="ghost" onClick={() => setSelectedEntry(null)}>
                 Close
               </Button>
