@@ -13,7 +13,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
-import { useStats, useAuditLog } from '../hooks/useAuthAdmin';
+import { useStats, useAuditLog, useAuthAdminConfig } from '../hooks/useAuthAdmin';
 
 interface DashboardProps {
   onNavigate?: (path: string) => void;
@@ -24,6 +24,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   
   const { stats, loading: statsLoading, error: statsError } = useStats();
   const { data: auditData, loading: auditLoading, error: auditError } = useAuditLog({ pageSize: 5 });
+  const { config: authConfig, loading: configLoading } = useAuthAdminConfig();
 
   const navigate = (path: string) => {
     if (onNavigate) {
@@ -151,26 +152,32 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           iconColor="text-green-500"
           subtitle="Currently logged in"
         />
-        <StatsCard
-          title="2FA Adoption"
-          value={statsLoading ? '...' : `${stats?.two_factor_adoption ?? 0}%`}
-          icon={Shield}
-          iconColor="text-purple-500"
-          trend={
-            stats?.two_factor_adoption && stats.two_factor_adoption > 50
-              ? { value: 'Above target', direction: 'up' }
-              : { value: 'Below target', direction: 'down' }
-          }
-        />
-        <StatsCard
-          title="Failed Logins (24h)"
-          value={statsLoading ? '...' : (stats?.failed_logins_24h ?? 0)}
-          icon={AlertTriangle}
-          iconColor={
-            (stats?.failed_logins_24h ?? 0) > 10 ? 'text-red-500' : 'text-yellow-500'
-          }
-          subtitle="Potential security concern"
-        />
+        {/* Only show 2FA Adoption if two_factor_auth is enabled */}
+        {!configLoading && authConfig?.two_factor_auth && (
+          <StatsCard
+            title="2FA Adoption"
+            value={statsLoading ? '...' : `${stats?.two_factor_adoption ?? 0}%`}
+            icon={Shield}
+            iconColor="text-purple-500"
+            trend={
+              stats?.two_factor_adoption && stats.two_factor_adoption > 50
+                ? { value: 'Above target', direction: 'up' }
+                : { value: 'Below target', direction: 'down' }
+            }
+          />
+        )}
+        {/* Only show Failed Logins if rate_limiting is enabled */}
+        {!configLoading && authConfig?.rate_limiting && (
+          <StatsCard
+            title="Failed Logins (24h)"
+            value={statsLoading ? '...' : (stats?.failed_logins_24h ?? 0)}
+            icon={AlertTriangle}
+            iconColor={
+              (stats?.failed_logins_24h ?? 0) > 10 ? 'text-red-500' : 'text-yellow-500'
+            }
+            subtitle="Potential security concern"
+          />
+        )}
       </div>
 
       {/* Quick Actions */}
@@ -184,10 +191,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <Key size={16} className="mr-2" />
             Active Sessions
           </Button>
-          <Button variant="secondary" onClick={() => navigate('/admin/audit-log')}>
-            <Activity size={16} className="mr-2" />
-            Audit Log
-          </Button>
+          {!configLoading && authConfig?.audit_log && (
+            <Button variant="secondary" onClick={() => navigate('/admin/audit-log')}>
+              <Activity size={16} className="mr-2" />
+              Audit Log
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => navigate('/admin/invites')}>
             <TrendingUp size={16} className="mr-2" />
             Invites
@@ -198,51 +207,53 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </div>
       </Card>
 
-      {/* Recent Activity */}
-      <Card title="Recent Activity">
-        {auditLoading ? (
-          <div className="flex justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        ) : auditData?.items.length === 0 ? (
-          <EmptyState
-            icon={<Clock size={48} />}
-            title="No recent activity"
-            description="Activity will appear here when users interact with the system"
-          />
-        ) : (
-          <div className="space-y-4">
-            {auditData?.items.map((entry, i) => (
-              <div
-                key={entry.id || i}
-                className="flex items-start gap-3 pb-4 border-b border-gray-800 last:border-0 last:pb-0"
-              >
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={getEventBadgeVariant(entry.event_type)}>
-                      {entry.event_type.replace(/_/g, ' ')}
-                    </Badge>
-                    <span className="text-sm text-gray-100 truncate">
-                      {entry.user_email}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-sm text-gray-400 flex items-center gap-2">
-                    <span>{entry.ip_address}</span>
-                    <span>•</span>
-                    <span>{formatDate(entry.created_at)}</span>
+      {/* Recent Activity - Only show if audit_log is enabled */}
+      {!configLoading && authConfig?.audit_log && (
+        <Card title="Recent Activity">
+          {auditLoading ? (
+            <div className="flex justify-center py-12">
+              <Spinner size="lg" />
+            </div>
+          ) : auditData?.items.length === 0 ? (
+            <EmptyState
+              icon={<Clock size={48} />}
+              title="No recent activity"
+              description="Activity will appear here when users interact with the system"
+            />
+          ) : (
+            <div className="space-y-4">
+              {auditData?.items.map((entry, i) => (
+                <div
+                  key={entry.id || i}
+                  className="flex items-start gap-3 pb-4 border-b border-gray-800 last:border-0 last:pb-0"
+                >
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={getEventBadgeVariant(entry.event_type)}>
+                        {entry.event_type.replace(/_/g, ' ')}
+                      </Badge>
+                      <span className="text-sm text-gray-100 truncate">
+                        {entry.user_email}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-sm text-gray-400 flex items-center gap-2">
+                      <span>{entry.ip_address}</span>
+                      <span>•</span>
+                      <span>{formatDate(entry.created_at)}</span>
+                    </div>
                   </div>
                 </div>
+              ))}
+              <div className="pt-2">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/admin/audit-log')}>
+                  View All Activity
+                </Button>
               </div>
-            ))}
-            <div className="pt-2">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/audit-log')}>
-                View All Activity
-              </Button>
             </div>
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+      )}
     </Page>
   );
 }

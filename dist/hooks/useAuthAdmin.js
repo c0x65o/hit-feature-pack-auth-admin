@@ -63,19 +63,24 @@ export function useStats() {
             setError(null);
             // Stats are computed client-side from other endpoints since auth module
             // doesn't have a dedicated stats endpoint yet
-            const [usersRes, sessionsRes] = await Promise.allSettled([
+            const [usersRes, sessionsRes, auditRes] = await Promise.allSettled([
                 fetchWithAuth('/users'),
                 fetchWithAuth('/admin/sessions?limit=1'),
+                fetchWithAuth('/audit-log?event_type=login_failure&limit=1000'),
             ]);
             // Check for auth errors first - these should be surfaced to the user
             const usersError = usersRes.status === 'rejected' ? usersRes.reason : null;
             const sessionsError = sessionsRes.status === 'rejected' ? sessionsRes.reason : null;
+            const auditError = auditRes.status === 'rejected' ? auditRes.reason : null;
             // If any request got a 401/403, surface that error
             if (usersError instanceof AuthAdminError && usersError.isAuthError()) {
                 throw usersError;
             }
             if (sessionsError instanceof AuthAdminError && sessionsError.isAuthError()) {
                 throw sessionsError;
+            }
+            if (auditError instanceof AuthAdminError && auditError.isAuthError()) {
+                throw auditError;
             }
             // For other errors (network, etc.), log but continue with partial data
             if (usersError) {
@@ -84,15 +89,35 @@ export function useStats() {
             if (sessionsError) {
                 console.warn('Failed to fetch sessions for stats:', sessionsError);
             }
+            if (auditError) {
+                console.warn('Failed to fetch audit log for stats:', auditError);
+            }
             const users = usersRes.status === 'fulfilled' ? usersRes.value : [];
             const totalUsers = users.length;
             const activeSessions = sessionsRes.status === 'fulfilled' ? sessionsRes.value.total : 0;
             const twoFactorUsers = users.filter(u => u.two_factor_enabled).length;
+            // Calculate failed logins in last 24 hours from audit log
+            let failedLogins24h = 0;
+            if (auditRes.status === 'fulfilled') {
+                const now = new Date();
+                const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                failedLogins24h = auditRes.value.events.filter((event) => {
+                    const eventDate = new Date(event.created_at);
+                    return eventDate >= yesterday;
+                }).length;
+            }
+            // Calculate new users in last 7 days
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const newUsers7d = users.filter(u => {
+                const createdDate = new Date(u.created_at);
+                return createdDate >= sevenDaysAgo;
+            }).length;
             setStats({
                 total_users: totalUsers,
                 active_sessions: activeSessions,
-                failed_logins_24h: 0, // Would need audit log query
-                new_users_7d: 0, // Would need users query with date filter
+                failed_logins_24h: failedLogins24h,
+                new_users_7d: newUsers7d,
                 two_factor_adoption: totalUsers > 0 ? Math.round((twoFactorUsers / totalUsers) * 100) : 0,
                 pending_invites: 0, // Invites may be disabled
             });
@@ -534,6 +559,13 @@ export function useAuthAdminConfig() {
                 magic_link_login: hitCfg.auth.magicLinkLogin,
                 email_verification: hitCfg.auth.emailVerification,
                 oauth_providers: hitCfg.auth.socialProviders || [],
+                rate_limiting: hitCfg.auth.rateLimiting,
+                two_factor_required: hitCfg.auth.twoFactorRequired,
+                recovery_codes_enabled: hitCfg.auth.recoveryCodesEnabled,
+                remember_device: hitCfg.auth.rememberDevice,
+                device_fingerprinting: hitCfg.auth.deviceFingerprinting,
+                new_device_alerts: hitCfg.auth.newDeviceAlerts,
+                lockout_notify_user: hitCfg.auth.lockoutNotifyUser,
             };
         };
         Promise.all([
@@ -553,6 +585,13 @@ export function useAuthAdminConfig() {
                 magic_link_login: apiConfig?.magic_link_login ?? mapHitConfig(hitCfg).magic_link_login ?? false,
                 email_verification: apiConfig?.email_verification ?? mapHitConfig(hitCfg).email_verification ?? true,
                 oauth_providers: apiConfig?.oauth_providers ?? mapHitConfig(hitCfg).oauth_providers ?? [],
+                rate_limiting: apiConfig?.rate_limiting ?? mapHitConfig(hitCfg).rate_limiting ?? true,
+                two_factor_required: apiConfig?.two_factor_required ?? mapHitConfig(hitCfg).two_factor_required ?? false,
+                recovery_codes_enabled: apiConfig?.recovery_codes_enabled ?? mapHitConfig(hitCfg).recovery_codes_enabled ?? true,
+                remember_device: apiConfig?.remember_device ?? mapHitConfig(hitCfg).remember_device ?? true,
+                device_fingerprinting: apiConfig?.device_fingerprinting ?? mapHitConfig(hitCfg).device_fingerprinting ?? false,
+                new_device_alerts: apiConfig?.new_device_alerts ?? mapHitConfig(hitCfg).new_device_alerts ?? true,
+                lockout_notify_user: apiConfig?.lockout_notify_user ?? mapHitConfig(hitCfg).lockout_notify_user ?? true,
             };
             setConfig(merged);
             setError(null);

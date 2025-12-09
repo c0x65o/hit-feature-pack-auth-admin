@@ -145,6 +145,13 @@ interface AuthAdminConfig {
     magic_link_login: boolean;
     email_verification: boolean;
     oauth_providers: string[];
+    rate_limiting: boolean;
+    two_factor_required: boolean;
+    recovery_codes_enabled: boolean;
+    remember_device: boolean;
+    device_fingerprinting: boolean;
+    new_device_alerts: boolean;
+    lockout_notify_user: boolean;
 }
 export declare function useAuthAdminConfig(): {
     config: AuthAdminConfig | null;
