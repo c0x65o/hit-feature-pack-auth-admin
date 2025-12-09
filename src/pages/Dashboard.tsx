@@ -22,8 +22,8 @@ interface DashboardProps {
 export function Dashboard({ onNavigate }: DashboardProps) {
   const { Page, Card, Button, Badge, Spinner, EmptyState } = useUi();
   
-  const { stats, loading: statsLoading } = useStats();
-  const { data: auditData, loading: auditLoading } = useAuditLog({ pageSize: 5 });
+  const { stats, loading: statsLoading, error: statsError } = useStats();
+  const { data: auditData, loading: auditLoading, error: auditError } = useAuditLog({ pageSize: 5 });
 
   const navigate = (path: string) => {
     if (onNavigate) {
@@ -101,6 +101,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     </Card>
   );
 
+  // Check for auth errors
+  const authError = statsError || auditError;
+  const isAuthError = authError && 'status' in authError && 
+    ((authError as { status: number }).status === 401 || (authError as { status: number }).status === 403);
+
   return (
     <Page
       title="Admin Dashboard"
@@ -112,6 +117,26 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </Button>
       }
     >
+      {/* Auth Error Alert */}
+      {isAuthError && (
+        <Card>
+          <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <AlertTriangle size={24} className="text-red-500 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-red-400">Access Denied</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                {(authError as { status: number }).status === 403 
+                  ? 'You do not have admin privileges to view this data. Please contact an administrator.'
+                  : 'Your session has expired. Please log in again.'}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Error: {authError.message}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard

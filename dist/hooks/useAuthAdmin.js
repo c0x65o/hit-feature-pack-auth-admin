@@ -21,6 +21,19 @@ function getAuthHeaders() {
     }
     return {};
 }
+// Custom error class that preserves HTTP status code
+class AuthAdminError extends Error {
+    constructor(status, detail) {
+        super(detail);
+        this.name = 'AuthAdminError';
+        this.status = status;
+        this.detail = detail;
+    }
+    // Check if this is an auth error (401/403)
+    isAuthError() {
+        return this.status === 401 || this.status === 403;
+    }
+}
 async function fetchWithAuth(endpoint, options) {
     const authUrl = getAuthUrl();
     const url = `${authUrl}${endpoint}`;
@@ -34,8 +47,9 @@ async function fetchWithAuth(endpoint, options) {
         },
     });
     if (!res.ok) {
-        const error = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(error.message || `Request failed: ${res.status}`);
+        const errorBody = await res.json().catch(() => ({ detail: res.statusText }));
+        const detail = errorBody.detail || errorBody.message || `Request failed: ${res.status}`;
+        throw new AuthAdminError(res.status, detail);
     }
     return res.json();
 }
@@ -46,12 +60,30 @@ export function useStats() {
     const refresh = useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
             // Stats are computed client-side from other endpoints since auth module
             // doesn't have a dedicated stats endpoint yet
             const [usersRes, sessionsRes] = await Promise.allSettled([
                 fetchWithAuth('/users'),
                 fetchWithAuth('/admin/sessions?limit=1'),
             ]);
+            // Check for auth errors first - these should be surfaced to the user
+            const usersError = usersRes.status === 'rejected' ? usersRes.reason : null;
+            const sessionsError = sessionsRes.status === 'rejected' ? sessionsRes.reason : null;
+            // If any request got a 401/403, surface that error
+            if (usersError instanceof AuthAdminError && usersError.isAuthError()) {
+                throw usersError;
+            }
+            if (sessionsError instanceof AuthAdminError && sessionsError.isAuthError()) {
+                throw sessionsError;
+            }
+            // For other errors (network, etc.), log but continue with partial data
+            if (usersError) {
+                console.warn('Failed to fetch users for stats:', usersError);
+            }
+            if (sessionsError) {
+                console.warn('Failed to fetch sessions for stats:', sessionsError);
+            }
             const users = usersRes.status === 'fulfilled' ? usersRes.value : [];
             const totalUsers = users.length;
             const activeSessions = sessionsRes.status === 'fulfilled' ? sessionsRes.value.total : 0;
@@ -64,10 +96,10 @@ export function useStats() {
                 two_factor_adoption: totalUsers > 0 ? Math.round((twoFactorUsers / totalUsers) * 100) : 0,
                 pending_invites: 0, // Invites may be disabled
             });
-            setError(null);
         }
         catch (e) {
             setError(e);
+            setStats(null);
         }
         finally {
             setLoading(false);
@@ -530,4 +562,6 @@ export function useAuthAdminConfig() {
     }, []);
     return { config, loading, error };
 }
+// Export types and error class
+export { AuthAdminError };
 //# sourceMappingURL=useAuthAdmin.js.map

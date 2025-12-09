@@ -65,6 +65,12 @@ interface UseQueryOptions {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
 }
+declare class AuthAdminError extends Error {
+    status: number;
+    detail: string;
+    constructor(status: number, detail: string);
+    isAuthError(): boolean;
+}
 export declare function useStats(): {
     stats: Stats | null;
     loading: boolean;
@@ -145,5 +151,6 @@ export declare function useAuthAdminConfig(): {
     loading: boolean;
     error: Error | null;
 };
+export { AuthAdminError };
 export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };
 //# sourceMappingURL=useAuthAdmin.d.ts.map

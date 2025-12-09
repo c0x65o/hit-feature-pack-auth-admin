@@ -5,8 +5,8 @@ import { useUi } from '@hit/ui-kit';
 import { useStats, useAuditLog } from '../hooks/useAuthAdmin';
 export function Dashboard({ onNavigate }) {
     const { Page, Card, Button, Badge, Spinner, EmptyState } = useUi();
-    const { stats, loading: statsLoading } = useStats();
-    const { data: auditData, loading: auditLoading } = useAuditLog({ pageSize: 5 });
+    const { stats, loading: statsLoading, error: statsError } = useStats();
+    const { data: auditData, loading: auditLoading, error: auditError } = useAuditLog({ pageSize: 5 });
     const navigate = (path) => {
         if (onNavigate) {
             onNavigate(path);
@@ -42,7 +42,13 @@ export function Dashboard({ onNavigate }) {
     };
     // Stats Card Component (inline for simplicity)
     const StatsCard = ({ title, value, icon: Icon, iconColor, subtitle, trend, }) => (_jsx(Card, { children: _jsxs("div", { className: "flex items-start justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm text-gray-400", children: title }), _jsx("p", { className: "text-2xl font-bold text-gray-100 mt-1", children: value }), subtitle && _jsx("p", { className: "text-sm text-gray-500 mt-1", children: subtitle }), trend && (_jsxs("div", { className: "flex items-center gap-2 mt-2", children: [trend.direction === 'up' ? (_jsx(TrendingUp, { size: 14, className: "text-green-500" })) : (_jsx(TrendingDown, { size: 14, className: "text-red-500" })), _jsx("span", { className: `text-sm ${trend.direction === 'up' ? 'text-green-500' : 'text-red-500'}`, children: trend.value })] }))] }), _jsx("div", { className: iconColor, children: _jsx(Icon, { size: 24 }) })] }) }));
-    return (_jsxs(Page, { title: "Admin Dashboard", description: "Overview of user activity and system status", actions: _jsxs(Button, { variant: "primary", onClick: () => navigate('/admin/users?action=create'), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] }), children: [_jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4", children: [_jsx(StatsCard, { title: "Total Users", value: statsLoading ? '...' : (stats?.total_users ?? 0), icon: Users, iconColor: "text-blue-500", trend: stats?.new_users_7d
+    // Check for auth errors
+    const authError = statsError || auditError;
+    const isAuthError = authError && 'status' in authError &&
+        (authError.status === 401 || authError.status === 403);
+    return (_jsxs(Page, { title: "Admin Dashboard", description: "Overview of user activity and system status", actions: _jsxs(Button, { variant: "primary", onClick: () => navigate('/admin/users?action=create'), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] }), children: [isAuthError && (_jsx(Card, { children: _jsxs("div", { className: "flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg", children: [_jsx(AlertTriangle, { size: 24, className: "text-red-500 flex-shrink-0" }), _jsxs("div", { children: [_jsx("h3", { className: "font-semibold text-red-400", children: "Access Denied" }), _jsx("p", { className: "text-sm text-gray-400 mt-1", children: authError.status === 403
+                                        ? 'You do not have admin privileges to view this data. Please contact an administrator.'
+                                        : 'Your session has expired. Please log in again.' }), _jsxs("p", { className: "text-xs text-gray-500 mt-2", children: ["Error: ", authError.message] })] })] }) })), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4", children: [_jsx(StatsCard, { title: "Total Users", value: statsLoading ? '...' : (stats?.total_users ?? 0), icon: Users, iconColor: "text-blue-500", trend: stats?.new_users_7d
                             ? { value: `${stats.new_users_7d} new this week`, direction: 'up' }
                             : undefined }), _jsx(StatsCard, { title: "Active Sessions", value: statsLoading ? '...' : (stats?.active_sessions ?? 0), icon: Key, iconColor: "text-green-500", subtitle: "Currently logged in" }), _jsx(StatsCard, { title: "2FA Adoption", value: statsLoading ? '...' : `${stats?.two_factor_adoption ?? 0}%`, icon: Shield, iconColor: "text-purple-500", trend: stats?.two_factor_adoption && stats.two_factor_adoption > 50
                             ? { value: 'Above target', direction: 'up' }
