@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Eye, Key, Trash2, UserPlus, Lock, Unlock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
-import { useUsers, useUserMutations, type User } from '../hooks/useAuthAdmin';
+import { useUsers, useUserMutations, useAuthAdminConfig, type User } from '../hooks/useAuthAdmin';
 
 interface UsersProps {
   onNavigate?: (path: string) => void;
@@ -31,6 +31,7 @@ export function Users({ onNavigate }: UsersProps) {
   });
 
   const { createUser, deleteUser, resetPassword, lockUser, unlockUser, loading: mutating } = useUserMutations();
+  const { config: adminConfig } = useAuthAdminConfig();
 
   const navigate = (path: string) => {
     if (onNavigate) {
@@ -98,10 +99,12 @@ export function Users({ onNavigate }: UsersProps) {
       title="Users"
       description="Manage user accounts"
       actions={
-        <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
-          <UserPlus size={16} className="mr-2" />
-          Add User
-        </Button>
+        adminConfig?.allow_signup !== false ? (
+          <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+            <UserPlus size={16} className="mr-2" />
+            Add User
+          </Button>
+        ) : null
       }
     >
       {/* Search */}
@@ -146,21 +149,25 @@ export function Users({ onNavigate }: UsersProps) {
                 {
                   key: 'email_verified',
                   label: 'Verified',
-                  render: (value) => (
+                  render: (value: unknown) => (
                     <Badge variant={value ? 'success' : 'warning'}>
                       {value ? 'Verified' : 'Pending'}
                     </Badge>
                   ),
                 },
-                {
-                  key: 'two_factor_enabled',
-                  label: '2FA',
-                  render: (value) => (
-                    <Badge variant={value ? 'success' : 'default'}>
-                      {value ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                  ),
-                },
+                ...(adminConfig?.two_factor_auth !== false
+                  ? [
+                      {
+                        key: 'two_factor_enabled',
+                        label: '2FA',
+                        render: (value: unknown) => (
+                          <Badge variant={value ? 'success' : 'default'}>
+                            {value ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'roles',
                   label: 'Roles',
@@ -202,13 +209,15 @@ export function Users({ onNavigate }: UsersProps) {
                         >
                           <Eye size={16} />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleResetPassword(user.email)}
-                        >
-                          <Key size={16} />
-                        </Button>
+                        {adminConfig?.password_reset !== false && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetPassword(user.email)}
+                          >
+                            <Key size={16} />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -232,13 +241,15 @@ export function Users({ onNavigate }: UsersProps) {
                 },
               ]}
               data={(data?.items || []).map((user) => ({
-                email: user.email,
-                email_verified: user.email_verified,
-                two_factor_enabled: user.two_factor_enabled,
-                roles: user.roles,
-                created_at: user.created_at,
-                last_login: user.last_login,
-                locked: user.locked,
+              email: user.email,
+              email_verified: user.email_verified,
+              ...(adminConfig?.two_factor_auth !== false
+                ? { two_factor_enabled: user.two_factor_enabled }
+                : {}),
+              roles: user.roles,
+              created_at: user.created_at,
+              last_login: user.last_login,
+              locked: user.locked,
               }))}
               onRowClick={(row) => navigate(`/admin/users/${encodeURIComponent(row.email as string)}`)}
               emptyMessage="No users found"

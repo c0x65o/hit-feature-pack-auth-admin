@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, Download, Eye } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
-import { useAuditLog, type AuditLogEntry } from '../hooks/useAuthAdmin';
+import { useAuditLog, useAuthAdminConfig, type AuditLogEntry } from '../hooks/useAuthAdmin';
 
 interface AuditLogProps {
   onNavigate?: (path: string) => void;
@@ -22,6 +22,8 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     search,
   });
 
+  const { config: adminConfig, loading: configLoading } = useAuthAdminConfig();
+
   const navigate = (path: string) => {
     if (onNavigate) {
       onNavigate(path);
@@ -29,6 +31,13 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
       window.location.href = path;
     }
   };
+
+  // Redirect if audit log is disabled
+  useEffect(() => {
+    if (!configLoading && adminConfig && adminConfig.audit_log === false) {
+      navigate('/admin');
+    }
+  }, [adminConfig, configLoading]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString();
@@ -68,6 +77,22 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Show loading while checking config
+  if (configLoading) {
+    return (
+      <Page title="Audit Log" description="Security events and user activity">
+        <div className="flex justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      </Page>
+    );
+  }
+
+  // Don't render if audit log is disabled (will redirect)
+  if (!adminConfig?.audit_log) {
+    return null;
+  }
 
   return (
     <Page

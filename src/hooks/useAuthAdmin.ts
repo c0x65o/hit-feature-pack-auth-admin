@@ -580,5 +580,66 @@ export function useInviteMutations() {
   return { createInvite, resendInvite, revokeInvite, loading, error };
 }
 
+// =============================================================================
+// ADMIN CONFIG HOOK
+// =============================================================================
+
+interface AuthAdminConfig {
+  allow_signup: boolean;
+  password_reset: boolean;
+  two_factor_auth: boolean;
+  audit_log: boolean;
+  magic_link_login: boolean;
+  email_verification: boolean;
+  oauth_providers: string[];
+}
+
+export function useAuthAdminConfig() {
+  const [config, setConfig] = useState<AuthAdminConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const mapHitConfig = (hitCfg: any): Partial<AuthAdminConfig> => {
+      if (!hitCfg?.auth) return {};
+      return {
+        allow_signup: hitCfg.auth.allowSignup,
+        password_reset: hitCfg.auth.passwordReset,
+        two_factor_auth: hitCfg.auth.twoFactorAuth,
+        audit_log: hitCfg.auth.auditLog,
+        magic_link_login: hitCfg.auth.magicLinkLogin,
+        email_verification: hitCfg.auth.emailVerification,
+        oauth_providers: hitCfg.auth.socialProviders || [],
+      };
+    };
+
+    Promise.all([
+      fetchWithAuth<{ features?: AuthAdminConfig; data?: AuthAdminConfig }>('/config').catch((e) => {
+        setError(e);
+        return null;
+      }),
+      fetch('/hit-config.json').then((res) => res.json()).catch(() => null),
+    ])
+      .then(([apiRes, hitCfg]) => {
+        const apiConfig = (apiRes?.features || apiRes?.data || apiRes) as AuthAdminConfig | null;
+        const merged: AuthAdminConfig = {
+          allow_signup: apiConfig?.allow_signup ?? mapHitConfig(hitCfg).allow_signup ?? false,
+          password_reset: apiConfig?.password_reset ?? mapHitConfig(hitCfg).password_reset ?? true,
+          two_factor_auth: apiConfig?.two_factor_auth ?? mapHitConfig(hitCfg).two_factor_auth ?? false,
+          audit_log: apiConfig?.audit_log ?? mapHitConfig(hitCfg).audit_log ?? true,
+          magic_link_login: apiConfig?.magic_link_login ?? mapHitConfig(hitCfg).magic_link_login ?? false,
+          email_verification: apiConfig?.email_verification ?? mapHitConfig(hitCfg).email_verification ?? true,
+          oauth_providers: apiConfig?.oauth_providers ?? mapHitConfig(hitCfg).oauth_providers ?? [],
+        };
+        setConfig(merged);
+        setError(null);
+      })
+      .catch((e) => setError(e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { config, loading, error };
+}
+
 // Export types
-export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse };
+export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };

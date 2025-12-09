@@ -14,10 +14,12 @@ export {
   useUserMutations,
   useSessionMutations,
   useInviteMutations,
+  useAuthAdminConfig,
   type User,
   type Session,
   type AuditLogEntry,
   type Invite,
   type Stats,
   type PaginatedResponse,
+  type AuthAdminConfig,
 } from './useAuthAdmin';
