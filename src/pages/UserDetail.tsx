@@ -3,21 +3,16 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft,
-  Mail,
   Shield,
   Key,
-  Clock,
-  Globe,
   Lock,
   Unlock,
   Trash2,
   RefreshCw,
+  Monitor,
+  Globe,
 } from 'lucide-react';
-import { PageHeader } from '../components/PageHeader';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
-import { Modal } from '../components/Modal';
-import { DataTable } from '../components/DataTable';
+import { useUi } from '@hit/ui-kit';
 import {
   useUser,
   useSessions,
@@ -31,6 +26,8 @@ interface UserDetailProps {
 }
 
 export function UserDetail({ email, onNavigate }: UserDetailProps) {
+  const { Page, Card, Button, Badge, Table, Modal, Alert, Spinner, EmptyState, Checkbox } = useUi();
+  
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [newRoles, setNewRoles] = useState<string[]>([]);
@@ -76,9 +73,8 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   };
 
   const handleToggleLock = async () => {
-    if (!user) return;
-    const action = user.locked ? unlockUser : lockUser;
-    const actionName = user.locked ? 'unlock' : 'lock';
+    const action = user?.locked ? unlockUser : lockUser;
+    const actionName = user?.locked ? 'unlock' : 'lock';
     if (confirm(`Are you sure you want to ${actionName} this user?`)) {
       try {
         await action(email);
@@ -132,339 +128,245 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   };
 
   const toggleRole = (role: string) => {
-    if (newRoles.includes(role)) {
-      setNewRoles(newRoles.filter((r) => r !== role));
-    } else {
-      setNewRoles([...newRoles, role]);
-    }
+    setNewRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
   };
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="h-8 bg-[var(--hit-muted)] rounded w-1/4" />
-        <div className="h-64 bg-[var(--hit-muted)] rounded" />
-      </div>
+      <Page title="Loading...">
+        <Card>
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        </Card>
+      </Page>
     );
   }
 
   if (error || !user) {
     return (
-      <div className="text-center py-12">
-        <p className="text-[var(--hit-error)]">{error?.message || 'User not found'}</p>
-        <Button variant="outline" onClick={() => navigate('/admin/users')} className="mt-4">
-          Back to Users
-        </Button>
-      </div>
+      <Page
+        title="User Not Found"
+        actions={
+          <Button variant="secondary" onClick={() => navigate('/admin/users')}>
+            <ArrowLeft size={16} className="mr-2" />
+            Back to Users
+          </Button>
+        }
+      >
+        <Alert variant="error" title="Error">
+          {error?.message || 'User not found'}
+        </Alert>
+      </Page>
     );
   }
 
-  const sessionColumns = [
-    { key: 'ip_address', label: 'IP Address' },
-    {
-      key: 'user_agent',
-      label: 'Device',
-      render: (session: { user_agent: string }) => (
-        <span className="text-sm truncate max-w-xs block">
-          {session.user_agent?.split(' ')[0] || 'Unknown'}
-        </span>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Started',
-      render: (session: { created_at: string }) => formatDate(session.created_at),
-    },
-    {
-      key: 'expires_at',
-      label: 'Expires',
-      render: (session: { expires_at: string }) => formatDate(session.expires_at),
-    },
-    {
-      key: 'current',
-      label: 'Status',
-      render: (session: { current?: boolean }) =>
-        session.current ? (
-          <Badge variant="success">Current</Badge>
-        ) : (
-          <Badge variant="default">Active</Badge>
-        ),
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          icon={ArrowLeft}
-          onClick={() => navigate('/admin/users')}
-        >
-          Back
-        </Button>
-      </div>
-
-      <PageHeader
-        title={user.email}
-        description={`User account details`}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              icon={Key}
-              onClick={handleResetPassword}
-              loading={mutating}
-            >
-              Reset Password
-            </Button>
-            <Button
-              variant="outline"
-              icon={user.locked ? Unlock : Lock}
-              onClick={handleToggleLock}
-              loading={mutating}
-            >
-              {user.locked ? 'Unlock' : 'Lock'}
-            </Button>
-            <Button
-              variant="danger"
-              icon={Trash2}
-              onClick={() => setDeleteModalOpen(true)}
-            >
-              Delete
-            </Button>
-          </div>
-        }
-      />
-
-      {/* User Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Account Details */}
-        <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-[var(--hit-foreground)] mb-4">
-            Account Details
-          </h3>
-          <dl className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
-              <div>
-                <dt className="text-sm text-[var(--hit-muted-foreground)]">Email</dt>
-                <dd className="text-[var(--hit-foreground)]">{user.email}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
-              <div>
-                <dt className="text-sm text-[var(--hit-muted-foreground)]">Email Verified</dt>
-                <dd>
-                  <Badge variant={user.email_verified ? 'success' : 'warning'}>
-                    {user.email_verified ? 'Verified' : 'Pending'}
-                  </Badge>
-                </dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Key className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
-              <div>
-                <dt className="text-sm text-[var(--hit-muted-foreground)]">Two-Factor Auth</dt>
-                <dd>
-                  <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
-                    {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
-                  </Badge>
-                </dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-[var(--hit-muted-foreground)]" />
-              <div>
-                <dt className="text-sm text-[var(--hit-muted-foreground)]">Account Status</dt>
-                <dd>
-                  <Badge variant={user.locked ? 'error' : 'success'}>
-                    {user.locked ? 'Locked' : 'Active'}
-                  </Badge>
-                </dd>
-              </div>
-            </div>
-          </dl>
+    <Page
+      title={user.email}
+      description={user.locked ? 'This account is locked' : undefined}
+      actions={
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => navigate('/admin/users')}>
+            <ArrowLeft size={16} className="mr-2" />
+            Back
+          </Button>
+          <Button variant="secondary" onClick={handleResetPassword} disabled={mutating}>
+            <Key size={16} className="mr-2" />
+            Reset Password
+          </Button>
+          <Button variant="secondary" onClick={handleToggleLock} disabled={mutating}>
+            {user.locked ? <Unlock size={16} className="mr-2" /> : <Lock size={16} className="mr-2" />}
+            {user.locked ? 'Unlock' : 'Lock'}
+          </Button>
+          <Button variant="danger" onClick={() => setDeleteModalOpen(true)}>
+            <Trash2 size={16} className="mr-2" />
+            Delete
+          </Button>
         </div>
-
-        {/* Roles & Permissions */}
-        <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-[var(--hit-foreground)]">
-              Roles & Permissions
-            </h3>
-            <Button variant="ghost" size="sm" onClick={openRolesModal}>
-              Edit
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {user.roles.length === 0 ? (
-              <span className="text-[var(--hit-muted-foreground)]">No roles assigned</span>
-            ) : (
-              user.roles.map((role) => (
-                <Badge
-                  key={role}
-                  variant={role === 'admin' ? 'info' : 'default'}
-                  size="md"
-                >
-                  {role}
-                </Badge>
-              ))
-            )}
-          </div>
-
-          <h4 className="text-sm font-medium text-[var(--hit-foreground)] mt-6 mb-2">
-            Activity
-          </h4>
-          <dl className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Clock className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
-              <div className="text-sm">
-                <dt className="text-[var(--hit-muted-foreground)] inline">Created: </dt>
-                <dd className="text-[var(--hit-foreground)] inline">
-                  {formatDate(user.created_at)}
-                </dd>
-              </div>
+      }
+    >
+      {/* User Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card title="Account Details">
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Email</span>
+              <span className="text-gray-100">{user.email}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <Globe className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
-              <div className="text-sm">
-                <dt className="text-[var(--hit-muted-foreground)] inline">Last Login: </dt>
-                <dd className="text-[var(--hit-foreground)] inline">
-                  {formatDate(user.last_login)}
-                </dd>
-              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Verified</span>
+              <Badge variant={user.email_verified ? 'success' : 'warning'}>
+                {user.email_verified ? 'Yes' : 'No'}
+              </Badge>
             </div>
-          </dl>
-
-          {user.oauth_providers && user.oauth_providers.length > 0 && (
-            <>
-              <h4 className="text-sm font-medium text-[var(--hit-foreground)] mt-6 mb-2">
-                Connected Accounts
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {user.oauth_providers.map((provider) => (
-                  <Badge key={provider} variant="default">
-                    {provider}
-                  </Badge>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Active Sessions */}
-      <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg">
-        <div className="p-4 border-b border-[var(--hit-border)] flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--hit-foreground)]">
-            Active Sessions
-          </h3>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={RefreshCw}
-              onClick={() => refreshSessions()}
-            >
-              Refresh
-            </Button>
-            {sessionsData?.items && sessionsData.items.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRevokeAllSessions}
-              >
-                Revoke All
-              </Button>
-            )}
+            <div className="flex justify-between">
+              <span className="text-gray-400">2FA</span>
+              <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
+                {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Status</span>
+              <Badge variant={user.locked ? 'error' : 'success'}>
+                {user.locked ? 'Locked' : 'Active'}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Created</span>
+              <span className="text-gray-100">{formatDate(user.created_at)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Last Login</span>
+              <span className="text-gray-100">{formatDate(user.last_login)}</span>
+            </div>
           </div>
-        </div>
-        <DataTable
-          columns={sessionColumns}
-          data={sessionsData?.items || []}
-          emptyMessage="No active sessions"
-          rowActions={(session: { id: string; current?: boolean }) =>
-            !session.current && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRevokeSession(session.id)}
-              >
-                Revoke
-              </Button>
-            )
+        </Card>
+
+        <Card
+          title="Roles"
+          footer={
+            <Button variant="secondary" size="sm" onClick={openRolesModal}>
+              <Shield size={16} className="mr-2" />
+              Edit Roles
+            </Button>
           }
-        />
+        >
+          <div className="flex flex-wrap gap-2">
+            {user.roles.map((role) => (
+              <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
+                {role}
+              </Badge>
+            ))}
+          </div>
+        </Card>
       </div>
+
+      {/* Sessions */}
+      <Card
+        title="Active Sessions"
+        footer={
+          sessionsData?.items?.length ? (
+            <Button variant="danger" size="sm" onClick={handleRevokeAllSessions}>
+              Revoke All Sessions
+            </Button>
+          ) : undefined
+        }
+      >
+        {!sessionsData?.items?.length ? (
+          <EmptyState
+            icon={<Monitor size={48} />}
+            title="No active sessions"
+            description="This user has no active sessions"
+          />
+        ) : (
+          <Table
+            columns={[
+              {
+                key: 'ip_address',
+                label: 'IP Address',
+                render: (value) => (
+                  <div className="flex items-center gap-2">
+                    <Globe size={16} className="text-gray-400" />
+                    <span className="font-mono text-sm">{value as string}</span>
+                  </div>
+                ),
+              },
+              {
+                key: 'created_at',
+                label: 'Started',
+                render: (value) => formatDate(value as string),
+              },
+              {
+                key: 'current',
+                label: 'Status',
+                render: (value) => (
+                  <Badge variant={value ? 'success' : 'default'}>
+                    {value ? 'Current' : 'Active'}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'actions',
+                label: '',
+                align: 'right' as const,
+                render: (_, row) => {
+                  if (row.current) return null;
+                  return (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeSession(row.id as string)}
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </Button>
+                  );
+                },
+              },
+            ]}
+            data={(sessionsData?.items || []).map((s) => ({
+              id: s.id,
+              ip_address: s.ip_address,
+              created_at: s.created_at,
+              current: s.current,
+            }))}
+          />
+        )}
+      </Card>
 
       {/* Delete Modal */}
       <Modal
-        isOpen={deleteModalOpen}
+        open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Delete User"
-        footer={
-          <>
+        description="This action cannot be undone"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Are you sure you want to delete <strong className="text-gray-100">{user.email}</strong>?
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="danger"
-              onClick={handleDeleteUser}
-              loading={mutating}
-            >
+            <Button variant="danger" onClick={handleDeleteUser} loading={mutating}>
               Delete User
             </Button>
-          </>
-        }
-      >
-        <p className="text-[var(--hit-muted-foreground)]">
-          Are you sure you want to delete{' '}
-          <strong className="text-[var(--hit-foreground)]">{user.email}</strong>?
-          This action cannot be undone.
-        </p>
+          </div>
+        </div>
       </Modal>
 
       {/* Roles Modal */}
       <Modal
-        isOpen={rolesModalOpen}
+        open={rolesModalOpen}
         onClose={() => setRolesModalOpen(false)}
         title="Edit Roles"
-        footer={
-          <>
+        description="Select the roles for this user"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            {['user', 'admin', 'moderator'].map((role) => (
+              <Checkbox
+                key={role}
+                label={role.charAt(0).toUpperCase() + role.slice(1)}
+                checked={newRoles.includes(role)}
+                onChange={() => toggleRole(role)}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setRolesModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleUpdateRoles}
-              loading={mutating}
-            >
+            <Button variant="primary" onClick={handleUpdateRoles} loading={mutating}>
               Save Roles
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          {['admin', 'user', 'moderator', 'viewer'].map((role) => (
-            <label
-              key={role}
-              className="flex items-center gap-3 p-3 rounded-lg border border-[var(--hit-border)] cursor-pointer hover:bg-[var(--hit-surface-hover)]"
-            >
-              <input
-                type="checkbox"
-                checked={newRoles.includes(role)}
-                onChange={() => toggleRole(role)}
-                className="w-4 h-4 text-[var(--hit-primary)] rounded focus:ring-[var(--hit-primary)]"
-              />
-              <span className="text-[var(--hit-foreground)] capitalize">
-                {role}
-              </span>
-            </label>
-          ))}
+          </div>
         </div>
       </Modal>
-    </div>
+    </Page>
   );
 }
 

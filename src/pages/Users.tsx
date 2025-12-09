@@ -1,12 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, Key, Trash2, UserPlus, Shield, ShieldOff, Lock, Unlock } from 'lucide-react';
-import { DataTable } from '../components/DataTable';
-import { PageHeader } from '../components/PageHeader';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
-import { Modal } from '../components/Modal';
+import { Eye, Key, Trash2, UserPlus, Lock, Unlock } from 'lucide-react';
+import { useUi } from '@hit/ui-kit';
 import { useUsers, useUserMutations, type User } from '../hooks/useAuthAdmin';
 
 interface UsersProps {
@@ -14,10 +10,10 @@ interface UsersProps {
 }
 
 export function Users({ onNavigate }: UsersProps) {
+  const { Page, Card, Button, Badge, Table, Modal, Input, Alert, Spinner } = useUi();
+  
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -30,8 +26,8 @@ export function Users({ onNavigate }: UsersProps) {
     page,
     pageSize: 25,
     search,
-    sortBy,
-    sortOrder,
+    sortBy: 'created_at',
+    sortOrder: 'desc',
   });
 
   const { createUser, deleteUser, resetPassword, lockUser, unlockUser, loading: mutating } = useUserMutations();
@@ -41,15 +37,6 @@ export function Users({ onNavigate }: UsersProps) {
       onNavigate(path);
     } else if (typeof window !== 'undefined') {
       window.location.href = path;
-    }
-  };
-
-  const handleSort = (key: string) => {
-    if (sortBy === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(key);
-      setSortOrder('asc');
     }
   };
 
@@ -106,149 +93,215 @@ export function Users({ onNavigate }: UsersProps) {
     return new Date(dateStr).toLocaleDateString();
   };
 
-  const columns = [
-    {
-      key: 'email',
-      label: 'Email',
-      sortable: true,
-      render: (user: User) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{user.email}</span>
-          {user.locked && (
-            <Lock className="w-3 h-3 text-[var(--hit-error)]" />
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'email_verified',
-      label: 'Verified',
-      render: (user: User) => (
-        <Badge variant={user.email_verified ? 'success' : 'warning'}>
-          {user.email_verified ? 'Verified' : 'Pending'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'two_factor_enabled',
-      label: '2FA',
-      render: (user: User) => (
-        <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
-          {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
-        </Badge>
-      ),
-    },
-    {
-      key: 'roles',
-      label: 'Roles',
-      render: (user: User) => (
-        <div className="flex flex-wrap gap-1">
-          {user.roles.map((role) => (
-            <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
-              {role}
-            </Badge>
-          ))}
-        </div>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Created',
-      sortable: true,
-      render: (user: User) => formatDate(user.created_at),
-    },
-    {
-      key: 'last_login',
-      label: 'Last Login',
-      sortable: true,
-      render: (user: User) => formatDate(user.last_login),
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Users"
-        description="Manage user accounts"
-        actions={
-          <Button
-            variant="primary"
-            icon={UserPlus}
-            onClick={() => setCreateModalOpen(true)}
-          >
-            Add User
-          </Button>
-        }
-      />
+    <Page
+      title="Users"
+      description="Manage user accounts"
+      actions={
+        <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+          <UserPlus size={16} className="mr-2" />
+          Add User
+        </Button>
+      }
+    >
+      {/* Search */}
+      <Card>
+        <div className="max-w-md">
+          <Input
+            label="Search Users"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by email..."
+          />
+        </div>
+      </Card>
 
-      <DataTable
-        columns={columns}
-        data={data?.items || []}
-        loading={loading}
-        error={error}
-        searchable
-        searchPlaceholder="Search users..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        totalPages={data?.total_pages || 1}
-        onPageChange={setPage}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSort={handleSort}
-        onRowClick={(user) => navigate(`/admin/users/${encodeURIComponent(user.email)}`)}
-        rowActions={(user) => (
+      {/* Error */}
+      {error && (
+        <Alert variant="error" title="Error loading users">
+          {error.message}
+        </Alert>
+      )}
+
+      {/* Users Table */}
+      <Card>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : (
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Eye}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/admin/users/${encodeURIComponent(user.email)}`);
-              }}
+            <Table
+              columns={[
+                {
+                  key: 'email',
+                  label: 'Email',
+                  render: (_, row) => (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{String(row.email)}</span>
+                      {row.locked ? <Lock size={14} className="text-red-500" /> : null}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'email_verified',
+                  label: 'Verified',
+                  render: (value) => (
+                    <Badge variant={value ? 'success' : 'warning'}>
+                      {value ? 'Verified' : 'Pending'}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: 'two_factor_enabled',
+                  label: '2FA',
+                  render: (value) => (
+                    <Badge variant={value ? 'success' : 'default'}>
+                      {value ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: 'roles',
+                  label: 'Roles',
+                  render: (value) => {
+                    const roles = value as string[] | undefined;
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {roles?.map((role) => (
+                          <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
+                            {role}
+                          </Badge>
+                        ))}
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: 'created_at',
+                  label: 'Created',
+                  render: (value) => formatDate(value as string),
+                },
+                {
+                  key: 'last_login',
+                  label: 'Last Login',
+                  render: (value) => formatDate(value as string),
+                },
+                {
+                  key: 'actions',
+                  label: '',
+                  align: 'right' as const,
+                  render: (_, row) => {
+                    const user = row as unknown as User;
+                    return (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/admin/users/${encodeURIComponent(user.email)}`)}
+                        >
+                          <Eye size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResetPassword(user.email)}
+                        >
+                          <Key size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleLock(user)}
+                        >
+                          {user.locked ? <Unlock size={16} /> : <Lock size={16} />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setDeleteModalOpen(true);
+                          }}
+                        >
+                          <Trash2 size={16} className="text-red-500" />
+                        </Button>
+                      </div>
+                    );
+                  },
+                },
+              ]}
+              data={(data?.items || []).map((user) => ({
+                email: user.email,
+                email_verified: user.email_verified,
+                two_factor_enabled: user.two_factor_enabled,
+                roles: user.roles,
+                created_at: user.created_at,
+                last_login: user.last_login,
+                locked: user.locked,
+              }))}
+              onRowClick={(row) => navigate(`/admin/users/${encodeURIComponent(row.email as string)}`)}
+              emptyMessage="No users found"
             />
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Key}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleResetPassword(user.email);
-              }}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={user.locked ? Unlock : Lock}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleLock(user);
-              }}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Trash2}
-              className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedUser(user);
-                setDeleteModalOpen(true);
-              }}
-            />
+
+            {/* Pagination */}
+            {data && data.total_pages > 1 && (
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+                <p className="text-sm text-gray-400">
+                  Page {data.page} of {data.total_pages} ({data.total} users)
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= data.total_pages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
-        emptyMessage="No users found"
-      />
+      </Card>
 
       {/* Create User Modal */}
       <Modal
-        isOpen={createModalOpen}
+        open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         title="Create New User"
-        footer={
-          <>
+        description="Add a new user to the system"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            value={newEmail}
+            onChange={setNewEmail}
+            placeholder="user@example.com"
+            required
+          />
+          <Input
+            label="Initial Password"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Minimum 8 characters"
+            required
+          />
+          <p className="text-xs text-gray-400">
+            User can change this after first login
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setCreateModalOpen(false)}>
               Cancel
             </Button>
@@ -260,69 +313,33 @@ export function Users({ onNavigate }: UsersProps) {
             >
               Create User
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
-              placeholder="user@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
-              Initial Password
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
-              placeholder="Minimum 8 characters"
-            />
-            <p className="mt-1 text-xs text-[var(--hit-muted-foreground)]">
-              User can change this after first login
-            </p>
           </div>
         </div>
       </Modal>
 
       {/* Delete User Modal */}
       <Modal
-        isOpen={deleteModalOpen}
+        open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Delete User"
-        footer={
-          <>
+        description="This action cannot be undone"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Are you sure you want to delete{' '}
+            <strong className="text-gray-100">{selectedUser?.email}</strong>?
+          </p>
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="danger"
-              onClick={handleDeleteUser}
-              loading={mutating}
-            >
+            <Button variant="danger" onClick={handleDeleteUser} loading={mutating}>
               Delete User
             </Button>
-          </>
-        }
-      >
-        <p className="text-[var(--hit-muted-foreground)]">
-          Are you sure you want to delete{' '}
-          <strong className="text-[var(--hit-foreground)]">
-            {selectedUser?.email}
-          </strong>
-          ? This action cannot be undone.
-        </p>
+          </div>
+        </div>
       </Modal>
-    </div>
+    </Page>
   );
 }
 

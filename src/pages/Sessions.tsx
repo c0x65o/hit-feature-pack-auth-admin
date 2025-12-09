@@ -2,10 +2,7 @@
 
 import React, { useState } from 'react';
 import { Trash2, RefreshCw, Monitor, Smartphone, Globe } from 'lucide-react';
-import { DataTable } from '../components/DataTable';
-import { PageHeader } from '../components/PageHeader';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
+import { useUi } from '@hit/ui-kit';
 import { useSessions, useSessionMutations, type Session } from '../hooks/useAuthAdmin';
 
 interface SessionsProps {
@@ -13,6 +10,8 @@ interface SessionsProps {
 }
 
 export function Sessions({ onNavigate }: SessionsProps) {
+  const { Page, Card, Button, Badge, Table, Input, Alert, Spinner } = useUi();
+  
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
 
@@ -50,20 +49,17 @@ export function Sessions({ onNavigate }: SessionsProps) {
   const getDeviceIcon = (userAgent: string) => {
     const ua = userAgent?.toLowerCase() || '';
     if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
-      return <Smartphone className="w-4 h-4 text-[var(--hit-muted-foreground)]" />;
+      return <Smartphone size={16} className="text-gray-400" />;
     }
-    return <Monitor className="w-4 h-4 text-[var(--hit-muted-foreground)]" />;
+    return <Monitor size={16} className="text-gray-400" />;
   };
 
   const getDeviceName = (userAgent: string) => {
     if (!userAgent) return 'Unknown Device';
-    
-    // Simple parsing - could be enhanced with a proper UA parser
     if (userAgent.includes('Chrome')) return 'Chrome';
     if (userAgent.includes('Firefox')) return 'Firefox';
     if (userAgent.includes('Safari')) return 'Safari';
     if (userAgent.includes('Edge')) return 'Edge';
-    
     return userAgent.split(' ')[0] || 'Unknown';
   };
 
@@ -71,118 +67,154 @@ export function Sessions({ onNavigate }: SessionsProps) {
     return new Date(expiresAt) < new Date();
   };
 
-  const columns = [
-    {
-      key: 'user_email',
-      label: 'User',
-      render: (session: Session) => (
-        <button
-          className="text-[var(--hit-primary)] hover:text-[var(--hit-primary-hover)]"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/admin/users/${encodeURIComponent(session.user_email)}`);
-          }}
-        >
-          {session.user_email}
-        </button>
-      ),
-    },
-    {
-      key: 'device',
-      label: 'Device',
-      render: (session: Session) => (
-        <div className="flex items-center gap-2">
-          {getDeviceIcon(session.user_agent)}
-          <span>{getDeviceName(session.user_agent)}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'ip_address',
-      label: 'IP Address',
-      render: (session: Session) => (
-        <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
-          <span className="font-mono text-sm">{session.ip_address}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Started',
-      render: (session: Session) => formatDate(session.created_at),
-    },
-    {
-      key: 'expires_at',
-      label: 'Expires',
-      render: (session: Session) => (
-        <div className="flex items-center gap-2">
-          <span>{formatDate(session.expires_at)}</span>
-          {isExpired(session.expires_at) && (
-            <Badge variant="error" size="sm">Expired</Badge>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (session: Session) => (
-        <Badge variant={session.current ? 'success' : isExpired(session.expires_at) ? 'error' : 'default'}>
-          {session.current ? 'Current' : isExpired(session.expires_at) ? 'Expired' : 'Active'}
-        </Badge>
-      ),
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Active Sessions"
-        description="Monitor and manage user sessions"
-        actions={
-          <Button
-            variant="outline"
-            icon={RefreshCw}
-            onClick={() => refresh()}
-          >
-            Refresh
-          </Button>
-        }
-      />
+    <Page
+      title="Active Sessions"
+      description="Monitor and manage user sessions"
+      actions={
+        <Button variant="secondary" onClick={() => refresh()}>
+          <RefreshCw size={16} className="mr-2" />
+          Refresh
+        </Button>
+      }
+    >
+      {/* Search */}
+      <Card>
+        <div className="max-w-md">
+          <Input
+            label="Search Sessions"
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by email or IP..."
+          />
+        </div>
+      </Card>
 
-      <DataTable
-        columns={columns}
-        data={data?.items || []}
-        loading={loading}
-        error={error}
-        searchable
-        searchPlaceholder="Search by email or IP..."
-        searchValue={search}
-        onSearchChange={setSearch}
-        page={page}
-        totalPages={data?.total_pages || 1}
-        onPageChange={setPage}
-        rowActions={(session) =>
-          !session.current && (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Trash2}
-              className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRevokeSession(session.id);
-              }}
-              loading={mutating}
-            >
-              Revoke
-            </Button>
-          )
-        }
-        emptyMessage="No active sessions"
-      />
-    </div>
+      {error && (
+        <Alert variant="error" title="Error loading sessions">
+          {error.message}
+        </Alert>
+      )}
+
+      <Card>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <>
+            <Table
+              columns={[
+                {
+                  key: 'user_email',
+                  label: 'User',
+                  render: (value) => (
+                    <button
+                      className="text-blue-500 hover:text-blue-400"
+                      onClick={() => navigate(`/admin/users/${encodeURIComponent(value as string)}`)}
+                    >
+                      {value as string}
+                    </button>
+                  ),
+                },
+                {
+                  key: 'device',
+                  label: 'Device',
+                  render: (_, row) => (
+                    <div className="flex items-center gap-2">
+                      {getDeviceIcon(row.user_agent as string)}
+                      <span>{getDeviceName(row.user_agent as string)}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'ip_address',
+                  label: 'IP Address',
+                  render: (value) => (
+                    <div className="flex items-center gap-2">
+                      <Globe size={16} className="text-gray-400" />
+                      <span className="font-mono text-sm">{value as string}</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'created_at',
+                  label: 'Started',
+                  render: (value) => formatDate(value as string),
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (_, row) => {
+                    const current = row.current as boolean;
+                    const expired = isExpired(row.expires_at as string);
+                    return (
+                      <Badge variant={current ? 'success' : expired ? 'error' : 'default'}>
+                        {current ? 'Current' : expired ? 'Expired' : 'Active'}
+                      </Badge>
+                    );
+                  },
+                },
+                {
+                  key: 'actions',
+                  label: '',
+                  align: 'right' as const,
+                  render: (_, row) => {
+                    if (row.current) return null;
+                    return (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRevokeSession(row.id as string)}
+                        disabled={mutating}
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                      </Button>
+                    );
+                  },
+                },
+              ]}
+              data={(data?.items || []).map((session) => ({
+                id: session.id,
+                user_email: session.user_email,
+                user_agent: session.user_agent,
+                ip_address: session.ip_address,
+                created_at: session.created_at,
+                expires_at: session.expires_at,
+                current: session.current,
+              }))}
+              emptyMessage="No active sessions"
+            />
+
+            {data && data.total_pages > 1 && (
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+                <p className="text-sm text-gray-400">
+                  Page {data.page} of {data.total_pages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= data.total_pages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </Page>
   );
 }
 

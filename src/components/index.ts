@@ -1,12 +1,9 @@
 /**
- * Auth Admin Components
+ * Auth Admin components
  * 
- * Reusable UI components for the auth-admin feature pack.
+ * This feature pack now uses @hit/ui-kit for all UI components.
+ * The shell provides the actual component implementations via UiKitProvider.
  */
 
-export { StatsCard } from './StatsCard';
-export { DataTable } from './DataTable';
-export { Modal } from './Modal';
-export { Badge } from './Badge';
-export { Button } from './Button';
-export { PageHeader } from './PageHeader';
+// No custom components exported - using useUi() from @hit/ui-kit instead
+export {};

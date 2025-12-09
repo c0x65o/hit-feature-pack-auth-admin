@@ -1,41 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, RefreshCw, Trash2, Send, UserPlus, Clock } from 'lucide-react';
-import { DataTable } from '../components/DataTable';
-import { PageHeader } from '../components/PageHeader';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
-import { Modal } from '../components/Modal';
-import { useInvites, useInviteMutations, type Invite } from '../hooks/useAuthAdmin';
+import { RefreshCw, Trash2, Send, UserPlus, Clock } from 'lucide-react';
+import { useUi } from '@hit/ui-kit';
+import { useInvites, useInviteMutations } from '../hooks/useAuthAdmin';
 
 interface InvitesProps {
   onNavigate?: (path: string) => void;
 }
 
 export function Invites({ onNavigate }: InvitesProps) {
+  const { Page, Card, Button, Badge, Table, Modal, Input, Select, Alert, Spinner, EmptyState } = useUi();
+  
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
-  const [newRoles, setNewRoles] = useState<string[]>(['user']);
+  const [newRole, setNewRole] = useState('user');
 
   const { data, loading, error, refresh } = useInvites({ page, pageSize: 25 });
   const { createInvite, resendInvite, revokeInvite, loading: mutating } = useInviteMutations();
 
-  const navigate = (path: string) => {
-    if (onNavigate) {
-      onNavigate(path);
-    } else if (typeof window !== 'undefined') {
-      window.location.href = path;
-    }
-  };
-
   const handleCreateInvite = async () => {
     try {
-      await createInvite({ email: newEmail, roles: newRoles });
+      await createInvite({ email: newEmail, roles: [newRole] });
       setCreateModalOpen(false);
       setNewEmail('');
-      setNewRoles(['user']);
+      setNewRole('user');
       refresh();
     } catch {
       // Error handled by hook
@@ -72,167 +62,180 @@ export function Invites({ onNavigate }: InvitesProps) {
     return new Date(expiresAt) < new Date();
   };
 
-  const getStatus = (invite: Invite): { label: string; variant: 'success' | 'warning' | 'error' | 'default' } => {
-    if (invite.accepted_at) {
-      return { label: 'Accepted', variant: 'success' };
-    }
-    if (isExpired(invite.expires_at)) {
-      return { label: 'Expired', variant: 'error' };
-    }
-    return { label: 'Pending', variant: 'warning' };
-  };
-
-  const toggleRole = (role: string) => {
-    if (newRoles.includes(role)) {
-      setNewRoles(newRoles.filter((r) => r !== role));
-    } else {
-      setNewRoles([...newRoles, role]);
-    }
-  };
-
-  const columns = [
-    {
-      key: 'email',
-      label: 'Email',
-      render: (invite: Invite) => (
-        <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
-          <span className="font-medium">{invite.email}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'roles',
-      label: 'Roles',
-      render: (invite: Invite) => (
-        <div className="flex flex-wrap gap-1">
-          {invite.roles.map((role) => (
-            <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
-              {role}
-            </Badge>
-          ))}
-        </div>
-      ),
-    },
-    {
-      key: 'invited_by',
-      label: 'Invited By',
-      render: (invite: Invite) => (
-        <button
-          className="text-[var(--hit-primary)] hover:text-[var(--hit-primary-hover)]"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/admin/users/${encodeURIComponent(invite.invited_by)}`);
-          }}
-        >
-          {invite.invited_by}
-        </button>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: 'Sent',
-      render: (invite: Invite) => formatDate(invite.created_at),
-    },
-    {
-      key: 'expires_at',
-      label: 'Expires',
-      render: (invite: Invite) => (
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[var(--hit-muted-foreground)]" />
-          <span>{formatDate(invite.expires_at)}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (invite: Invite) => {
-        const status = getStatus(invite);
-        return <Badge variant={status.variant}>{status.label}</Badge>;
-      },
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Invites"
-        description="Manage user invitations"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              icon={RefreshCw}
-              onClick={() => refresh()}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              icon={UserPlus}
-              onClick={() => setCreateModalOpen(true)}
-            >
-              Send Invite
-            </Button>
-          </div>
-        }
-      />
+    <Page
+      title="Invitations"
+      description="Manage user invitations"
+      actions={
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => refresh()}>
+            <RefreshCw size={16} className="mr-2" />
+            Refresh
+          </Button>
+          <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+            <UserPlus size={16} className="mr-2" />
+            Send Invite
+          </Button>
+        </div>
+      }
+    >
+      {error && (
+        <Alert variant="error" title="Error loading invites">
+          {error.message}
+        </Alert>
+      )}
 
-      <DataTable
-        columns={columns}
-        data={data?.items || []}
-        loading={loading}
-        error={error}
-        page={page}
-        totalPages={data?.total_pages || 1}
-        onPageChange={setPage}
-        rowActions={(invite) => {
-          const status = getStatus(invite);
-          if (status.label === 'Accepted') return null;
-          
-          return (
-            <>
-              {status.label === 'Pending' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={Send}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleResendInvite(invite.id);
-                  }}
-                  loading={mutating}
-                >
-                  Resend
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={Trash2}
-                className="text-[var(--hit-error)] hover:text-[var(--hit-error-dark)]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRevokeInvite(invite.id);
-                }}
-                loading={mutating}
-              >
-                Revoke
+      <Card>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Spinner size="lg" />
+          </div>
+        ) : !data?.items?.length ? (
+          <EmptyState
+            icon={<Clock size={48} />}
+            title="No pending invitations"
+            description="Send an invitation to add new users"
+            action={
+              <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+                <UserPlus size={16} className="mr-2" />
+                Send Invite
               </Button>
-            </>
-          );
-        }}
-        emptyMessage="No invites found"
-      />
+            }
+          />
+        ) : (
+          <>
+            <Table
+              columns={[
+                {
+                  key: 'email',
+                  label: 'Email',
+                  render: (value) => <span className="font-medium">{value as string}</span>,
+                },
+                {
+                  key: 'roles',
+                  label: 'Roles',
+                  render: (value) => (
+                    <div className="flex gap-1">
+                      {(value as string[])?.map((role) => (
+                        <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
+                          {role}
+                        </Badge>
+                      ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (_, row) => {
+                    const expired = isExpired(row.expires_at as string);
+                    const accepted = !!row.accepted_at;
+                    return (
+                      <Badge variant={accepted ? 'success' : expired ? 'error' : 'warning'}>
+                        {accepted ? 'Accepted' : expired ? 'Expired' : 'Pending'}
+                      </Badge>
+                    );
+                  },
+                },
+                {
+                  key: 'expires_at',
+                  label: 'Expires',
+                  render: (value) => formatDate(value as string),
+                },
+                {
+                  key: 'actions',
+                  label: '',
+                  align: 'right' as const,
+                  render: (_, row) => {
+                    if (row.accepted_at) return null;
+                    return (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResendInvite(row.id as string)}
+                          disabled={mutating}
+                        >
+                          <Send size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevokeInvite(row.id as string)}
+                          disabled={mutating}
+                        >
+                          <Trash2 size={16} className="text-red-500" />
+                        </Button>
+                      </div>
+                    );
+                  },
+                },
+              ]}
+              data={(data?.items || []).map((invite) => ({
+                id: invite.id,
+                email: invite.email,
+                roles: invite.roles,
+                expires_at: invite.expires_at,
+                accepted_at: invite.accepted_at,
+              }))}
+              emptyMessage="No invitations found"
+            />
+
+            {data.total_pages > 1 && (
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+                <p className="text-sm text-gray-400">
+                  Page {data.page} of {data.total_pages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= data.total_pages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
 
       {/* Create Invite Modal */}
       <Modal
-        isOpen={createModalOpen}
+        open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         title="Send Invitation"
-        footer={
-          <>
+        description="Invite a new user to join"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            value={newEmail}
+            onChange={setNewEmail}
+            placeholder="user@example.com"
+            required
+          />
+          <Select
+            label="Role"
+            options={[
+              { value: 'user', label: 'User' },
+              { value: 'admin', label: 'Admin' },
+            ]}
+            value={newRole}
+            onChange={setNewRole}
+          />
+          <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={() => setCreateModalOpen(false)}>
               Cancel
             </Button>
@@ -244,48 +247,10 @@ export function Invites({ onNavigate }: InvitesProps) {
             >
               Send Invite
             </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-[var(--hit-border)] rounded-lg bg-[var(--hit-input-bg)] text-[var(--hit-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--hit-primary)]"
-              placeholder="user@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--hit-foreground)] mb-2">
-              Roles
-            </label>
-            <div className="space-y-2">
-              {['admin', 'user', 'moderator', 'viewer'].map((role) => (
-                <label
-                  key={role}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-[var(--hit-border)] cursor-pointer hover:bg-[var(--hit-surface-hover)]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={newRoles.includes(role)}
-                    onChange={() => toggleRole(role)}
-                    className="w-4 h-4 text-[var(--hit-primary)] rounded focus:ring-[var(--hit-primary)]"
-                  />
-                  <span className="text-[var(--hit-foreground)] capitalize">
-                    {role}
-                  </span>
-                </label>
-              ))}
-            </div>
           </div>
         </div>
       </Modal>
-    </div>
+    </Page>
   );
 }
 

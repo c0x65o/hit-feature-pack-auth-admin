@@ -10,11 +10,9 @@ import {
   Activity,
   Clock,
   TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
-import { StatsCard } from '../components/StatsCard';
-import { PageHeader } from '../components/PageHeader';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
+import { useUi } from '@hit/ui-kit';
 import { useStats, useAuditLog } from '../hooks/useAuthAdmin';
 
 interface DashboardProps {
@@ -22,6 +20,8 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const { Page, Card, Button, Badge, Spinner, EmptyState } = useUi();
+  
   const { stats, loading: statsLoading } = useStats();
   const { data: auditData, loading: auditLoading } = useAuditLog({ pageSize: 5 });
 
@@ -54,24 +54,64 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return 'default';
   };
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Admin Dashboard"
-        description="Overview of user activity and system status"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="primary"
-              icon={UserPlus}
-              onClick={() => navigate('/admin/users?action=create')}
-            >
-              Add User
-            </Button>
-          </div>
-        }
-      />
+  // Stats Card Component (inline for simplicity)
+  const StatsCard = ({
+    title,
+    value,
+    icon: Icon,
+    iconColor,
+    subtitle,
+    trend,
+  }: {
+    title: string;
+    value: string | number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    icon: any;
+    iconColor: string;
+    subtitle?: string;
+    trend?: { value: string; direction: 'up' | 'down' };
+  }) => (
+    <Card>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-100 mt-1">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+          {trend && (
+            <div className="flex items-center gap-1 mt-2">
+              {trend.direction === 'up' ? (
+                <TrendingUp size={14} className="text-green-500" />
+              ) : (
+                <TrendingDown size={14} className="text-red-500" />
+              )}
+              <span
+                className={`text-sm ${
+                  trend.direction === 'up' ? 'text-green-500' : 'text-red-500'
+                }`}
+              >
+                {trend.value}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className={iconColor}>
+          <Icon size={24} />
+        </div>
+      </div>
+    </Card>
+  );
 
+  return (
+    <Page
+      title="Admin Dashboard"
+      description="Overview of user activity and system status"
+      actions={
+        <Button variant="primary" onClick={() => navigate('/admin/users?action=create')}>
+          <UserPlus size={16} className="mr-2" />
+          Add User
+        </Button>
+      }
+    >
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
@@ -115,100 +155,60 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-[var(--hit-foreground)] mb-4">
-          Quick Actions
-        </h2>
+      <Card title="Quick Actions">
         <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            icon={Users}
-            onClick={() => navigate('/admin/users')}
-          >
+          <Button variant="secondary" onClick={() => navigate('/admin/users')}>
+            <Users size={16} className="mr-2" />
             View All Users
           </Button>
-          <Button
-            variant="outline"
-            icon={Key}
-            onClick={() => navigate('/admin/sessions')}
-          >
+          <Button variant="secondary" onClick={() => navigate('/admin/sessions')}>
+            <Key size={16} className="mr-2" />
             Active Sessions
           </Button>
-          <Button
-            variant="outline"
-            icon={Activity}
-            onClick={() => navigate('/admin/audit-log')}
-          >
+          <Button variant="secondary" onClick={() => navigate('/admin/audit-log')}>
+            <Activity size={16} className="mr-2" />
             Audit Log
           </Button>
-          <Button
-            variant="outline"
-            icon={TrendingUp}
-            onClick={() => navigate('/admin/invites')}
-          >
+          <Button variant="secondary" onClick={() => navigate('/admin/invites')}>
+            <TrendingUp size={16} className="mr-2" />
             Invites
             {stats?.pending_invites ? (
-              <Badge variant="info" className="ml-2">
-                {stats.pending_invites}
-              </Badge>
+              <Badge variant="info">{stats.pending_invites}</Badge>
             ) : null}
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Recent Activity */}
-      <div className="bg-[var(--hit-surface)] border border-[var(--hit-border)] rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--hit-foreground)]">
-            Recent Activity
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/admin/audit-log')}
-          >
-            View All
-          </Button>
-        </div>
-        
+      <Card title="Recent Activity">
         {auditLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse flex items-start gap-3 pb-4 border-b border-[var(--hit-border)] last:border-0"
-              >
-                <div className="w-2 h-2 bg-[var(--hit-muted)] rounded-full mt-2" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-[var(--hit-muted)] rounded w-3/4" />
-                  <div className="h-3 bg-[var(--hit-muted)] rounded w-1/2" />
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-center py-8">
+            <Spinner size="lg" />
           </div>
         ) : auditData?.items.length === 0 ? (
-          <div className="text-center py-8 text-[var(--hit-muted-foreground)]">
-            <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No recent activity</p>
-          </div>
+          <EmptyState
+            icon={<Clock size={48} />}
+            title="No recent activity"
+            description="Activity will appear here when users interact with the system"
+          />
         ) : (
           <div className="space-y-4">
             {auditData?.items.map((entry, i) => (
               <div
                 key={entry.id || i}
-                className="flex items-start gap-3 pb-4 border-b border-[var(--hit-border)] last:border-0 last:pb-0"
+                className="flex items-start gap-3 pb-4 border-b border-gray-800 last:border-0 last:pb-0"
               >
-                <div className="w-2 h-2 bg-[var(--hit-primary)] rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={getEventBadgeVariant(entry.event_type)}>
                       {entry.event_type.replace(/_/g, ' ')}
                     </Badge>
-                    <span className="text-sm text-[var(--hit-foreground)] truncate">
+                    <span className="text-sm text-gray-100 truncate">
                       {entry.user_email}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm text-[var(--hit-muted-foreground)] flex items-center gap-2">
+                  <div className="mt-1 text-sm text-gray-400 flex items-center gap-2">
                     <span>{entry.ip_address}</span>
                     <span>•</span>
                     <span>{formatDate(entry.created_at)}</span>
@@ -216,10 +216,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
               </div>
             ))}
+            <div className="pt-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/admin/audit-log')}>
+                View All Activity
+              </Button>
+            </div>
           </div>
         )}
-      </div>
-    </div>
+      </Card>
+    </Page>
   );
 }
 
