@@ -30,26 +30,24 @@ routes:
 nav:
   - id: admin
     label: Admin
-    icon: Shield
+    icon: ShieldCheck
+    group: system  # System/admin tools
     roles: [admin]
     showWhen: authenticated
     weight: 1000  # Admin at bottom of nav (higher weight = lower position)
     children:
-      - label: Dashboard
-        path: /admin
-        icon: LayoutDashboard
       - label: Users
         path: /admin/users
         icon: Users
-      - label: Sessions
-        path: /admin/sessions
-        icon: Key
-      - label: Audit Log
-        path: /admin/audit-log
-        icon: FileText
-      - label: Invites
+      - label: Invitations
         path: /admin/invites
         icon: Mail
+      - label: Permissions
+        path: /admin/permissions
+        icon: Key
+      - label: Settings
+        path: /admin/settings
+        icon: Settings
 
 # Notification types this pack can emit
 notifications:
