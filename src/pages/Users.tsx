@@ -109,7 +109,7 @@ export function Users({ onNavigate }: UsersProps) {
     >
       {/* Search */}
       <Card>
-        <div className="max-w-md p-6">
+        <div className="max-w-md">
           <Input
             label="Search Users"
             value={search}
@@ -257,7 +257,7 @@ export function Users({ onNavigate }: UsersProps) {
 
             {/* Pagination */}
             {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 mt-6 border-t border-gray-800">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages} ({data.total} users)
                 </p>

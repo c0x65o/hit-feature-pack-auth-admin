@@ -191,7 +191,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       {/* User Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="Account Details">
-          <div className="space-y-4 p-6">
+          <div className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-400">Email</span>
               <span className="text-gray-100">{user.email}</span>
@@ -228,15 +228,13 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
         <Card
           title="Roles"
           footer={
-            <div className="px-6 py-4">
-              <Button variant="secondary" size="sm" onClick={openRolesModal}>
-                <Shield size={16} className="mr-2" />
-                Edit Roles
-              </Button>
-            </div>
+            <Button variant="secondary" size="sm" onClick={openRolesModal}>
+              <Shield size={16} className="mr-2" />
+              Edit Roles
+            </Button>
           }
         >
-          <div className="flex flex-wrap gap-2 p-6">
+          <div className="flex flex-wrap gap-2">
             {(user.roles || []).map((role) => (
               <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
                 {role}

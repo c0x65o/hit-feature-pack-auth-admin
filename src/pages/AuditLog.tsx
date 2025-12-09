@@ -113,7 +113,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     >
       {/* Search */}
       <Card>
-        <div className="max-w-md p-6">
+        <div className="max-w-md">
           <Input
             label="Search Audit Log"
             value={search}

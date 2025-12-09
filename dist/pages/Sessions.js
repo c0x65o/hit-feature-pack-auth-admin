@@ -59,7 +59,7 @@ export function Sessions({ onNavigate }) {
     const isExpired = (expiresAt) => {
         return new Date(expiresAt) < new Date();
     };
-    return (_jsxs(Page, { title: "Active Sessions", description: "Monitor and manage user sessions", actions: _jsxs(Button, { variant: "secondary", onClick: () => refresh(), children: [_jsx(RefreshCw, { size: 16, className: "mr-2" }), "Refresh"] }), children: [_jsx(Card, { children: _jsx("div", { className: "max-w-md p-6", children: _jsx(Input, { label: "Search Sessions", value: search, onChange: setSearch, placeholder: "Search by email or IP..." }) }) }), error && (_jsx(Alert, { variant: "error", title: "Error loading sessions", children: error.message })), _jsx(Card, { children: loading ? (_jsx("div", { className: "flex justify-center py-12", children: _jsx(Spinner, { size: "lg" }) })) : (_jsxs(_Fragment, { children: [_jsx(Table, { columns: [
+    return (_jsxs(Page, { title: "Active Sessions", description: "Monitor and manage user sessions", actions: _jsxs(Button, { variant: "secondary", onClick: () => refresh(), children: [_jsx(RefreshCw, { size: 16, className: "mr-2" }), "Refresh"] }), children: [_jsx(Card, { children: _jsx("div", { className: "max-w-md", children: _jsx(Input, { label: "Search Sessions", value: search, onChange: setSearch, placeholder: "Search by email or IP..." }) }) }), error && (_jsx(Alert, { variant: "error", title: "Error loading sessions", children: error.message })), _jsx(Card, { children: loading ? (_jsx("div", { className: "flex justify-center py-12", children: _jsx(Spinner, { size: "lg" }) })) : (_jsxs(_Fragment, { children: [_jsx(Table, { columns: [
                                 {
                                     key: 'user_email',
                                     label: 'User',
@@ -107,7 +107,7 @@ export function Sessions({ onNavigate }) {
                                 created_at: session.created_at,
                                 expires_at: session.expires_at,
                                 current: session.current,
-                            })), emptyMessage: "No active sessions" }), data && data.total_pages > 1 && (_jsxs("div", { className: "flex items-center justify-between px-6 py-4 mt-6 border-t border-gray-800", children: [_jsxs("p", { className: "text-sm text-gray-400", children: ["Page ", data.page, " of ", data.total_pages] }), _jsxs("div", { className: "flex gap-3", children: [_jsx(Button, { variant: "secondary", size: "md", disabled: page === 1, onClick: () => setPage(page - 1), children: "Previous" }), _jsx(Button, { variant: "secondary", size: "md", disabled: page >= data.total_pages, onClick: () => setPage(page + 1), children: "Next" })] })] }))] })) })] }));
+                            })), emptyMessage: "No active sessions" }), data && data.total_pages > 1 && (_jsxs("div", { className: "flex items-center justify-between pt-4 mt-4 border-t border-gray-800", children: [_jsxs("p", { className: "text-sm text-gray-400", children: ["Page ", data.page, " of ", data.total_pages] }), _jsxs("div", { className: "flex gap-3", children: [_jsx(Button, { variant: "secondary", size: "md", disabled: page === 1, onClick: () => setPage(page - 1), children: "Previous" }), _jsx(Button, { variant: "secondary", size: "md", disabled: page >= data.total_pages, onClick: () => setPage(page + 1), children: "Next" })] })] }))] })) })] }));
 }
 export default Sessions;
 //# sourceMappingURL=Sessions.js.map
