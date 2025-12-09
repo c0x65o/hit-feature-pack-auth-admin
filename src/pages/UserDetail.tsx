@@ -249,22 +249,18 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
         title="Active Sessions"
         footer={
           sessionsData?.items?.length ? (
-            <div className="px-6 py-4">
-              <Button variant="danger" size="sm" onClick={handleRevokeAllSessions}>
-                Revoke All Sessions
-              </Button>
-            </div>
+            <Button variant="danger" size="sm" onClick={handleRevokeAllSessions}>
+              Revoke All Sessions
+            </Button>
           ) : undefined
         }
       >
         {!sessionsData?.items?.length ? (
-          <div className="p-6">
-            <EmptyState
-              icon={<Monitor size={48} />}
-              title="No active sessions"
-              description="This user has no active sessions"
-            />
-          </div>
+          <EmptyState
+            icon={<Monitor size={48} />}
+            title="No active sessions"
+            description="This user has no active sessions"
+          />
         ) : (
           <Table
             columns={[
