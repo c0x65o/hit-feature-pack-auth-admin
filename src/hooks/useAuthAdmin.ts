@@ -476,14 +476,40 @@ export function useUserMutations() {
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = async (email: string, sendEmail: boolean = true, password?: string) => {
     setLoading(true);
     setError(null);
     try {
-      // Use forgot-password endpoint to trigger password reset email
-      await fetchWithAuth('/forgot-password', {
+      if (sendEmail) {
+        // Use forgot-password endpoint to trigger password reset email
+        await fetchWithAuth('/forgot-password', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        });
+      } else {
+        // Use admin endpoint to set password directly
+        if (!password) {
+          throw new Error('Password is required when setting directly');
+        }
+        await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
+          method: 'POST',
+          body: JSON.stringify({ password, send_email: false }),
+        });
+      }
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resendVerification = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/resend-verification`, {
         method: 'POST',
-        body: JSON.stringify({ email }),
       });
     } catch (e) {
       setError(e as Error);
@@ -546,6 +572,7 @@ export function useUserMutations() {
     createUser,
     deleteUser,
     resetPassword,
+    resendVerification,
     updateRoles,
     lockUser,
     unlockUser,
@@ -654,6 +681,7 @@ export function useInviteMutations() {
 
 interface AuthAdminConfig {
   allow_signup: boolean;
+  allow_invited: boolean;
   password_reset: boolean;
   two_factor_auth: boolean;
   audit_log: boolean;
@@ -679,6 +707,7 @@ export function useAuthAdminConfig() {
       if (!hitCfg?.auth) return {};
       return {
         allow_signup: hitCfg.auth.allowSignup,
+        allow_invited: hitCfg.auth.allowInvited,
         password_reset: hitCfg.auth.passwordReset,
         two_factor_auth: hitCfg.auth.twoFactorAuth,
         audit_log: hitCfg.auth.auditLog,
@@ -706,6 +735,7 @@ export function useAuthAdminConfig() {
         const apiConfig = (apiRes?.features || apiRes?.data || apiRes) as AuthAdminConfig | null;
         const merged: AuthAdminConfig = {
           allow_signup: apiConfig?.allow_signup ?? mapHitConfig(hitCfg).allow_signup ?? false,
+          allow_invited: apiConfig?.allow_invited ?? mapHitConfig(hitCfg).allow_invited ?? false,
           password_reset: apiConfig?.password_reset ?? mapHitConfig(hitCfg).password_reset ?? true,
           two_factor_auth: apiConfig?.two_factor_auth ?? mapHitConfig(hitCfg).two_factor_auth ?? false,
           audit_log: apiConfig?.audit_log ?? mapHitConfig(hitCfg).audit_log ?? true,

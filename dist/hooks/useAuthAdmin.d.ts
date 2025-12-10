@@ -114,7 +114,8 @@ export declare function useUserMutations(): {
         roles?: string[];
     }) => Promise<void>;
     deleteUser: (email: string) => Promise<void>;
-    resetPassword: (email: string) => Promise<void>;
+    resetPassword: (email: string, sendEmail?: boolean, password?: string) => Promise<void>;
+    resendVerification: (email: string) => Promise<void>;
     updateRoles: (email: string, roles: string[]) => Promise<void>;
     lockUser: (email: string) => Promise<void>;
     unlockUser: (email: string) => Promise<void>;
@@ -139,6 +140,7 @@ export declare function useInviteMutations(): {
 };
 interface AuthAdminConfig {
     allow_signup: boolean;
+    allow_invited: boolean;
     password_reset: boolean;
     two_factor_auth: boolean;
     audit_log: boolean;

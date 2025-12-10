@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Monitor,
   Globe,
+  Mail,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import {
@@ -31,12 +32,17 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
   const [newRoles, setNewRoles] = useState<string[]>([]);
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordMethod, setResetPasswordMethod] = useState<'email' | 'direct'>('email');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const { user, loading, error, refresh } = useUser(email);
   const { data: sessionsData, refresh: refreshSessions } = useSessions({ search: email });
   const {
     deleteUser,
     resetPassword,
+    resendVerification,
     updateRoles,
     lockUser,
     unlockUser,
@@ -62,10 +68,50 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   };
 
   const handleResetPassword = async () => {
-    if (confirm(`Send password reset email to ${email}?`)) {
+    setResetPasswordModalOpen(true);
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    if (resetPasswordMethod === 'email') {
       try {
-        await resetPassword(email);
+        await resetPassword(email, true);
         alert('Password reset email sent!');
+        setResetPasswordModalOpen(false);
+        setResetPasswordMethod('email');
+        setNewPassword('');
+        setConfirmPassword('');
+      } catch {
+        // Error handled by hook
+      }
+    } else {
+      // Direct password set
+      if (!newPassword) {
+        alert('Password is required');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+      try {
+        await resetPassword(email, false, newPassword);
+        alert('Password has been reset!');
+        setResetPasswordModalOpen(false);
+        setResetPasswordMethod('email');
+        setNewPassword('');
+        setConfirmPassword('');
+        refresh();
+      } catch {
+        // Error handled by hook
+      }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (confirm(`Resend verification email to ${email}?`)) {
+      try {
+        await resendVerification(email);
+        alert('Verification email sent!');
       } catch {
         // Error handled by hook
       }
@@ -173,6 +219,12 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             <ArrowLeft size={16} className="mr-2" />
             Back
           </Button>
+          {!user.email_verified && (
+            <Button variant="secondary" onClick={handleResendVerification} disabled={mutating}>
+              <Mail size={16} className="mr-2" />
+              Resend Verification
+            </Button>
+          )}
           <Button variant="secondary" onClick={handleResetPassword} disabled={mutating}>
             <Key size={16} className="mr-2" />
             Reset Password
@@ -362,6 +414,100 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             </Button>
             <Button variant="primary" onClick={handleUpdateRoles} loading={mutating}>
               Save Roles
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        open={resetPasswordModalOpen}
+        onClose={() => {
+          setResetPasswordModalOpen(false);
+          setResetPasswordMethod('email');
+          setNewPassword('');
+          setConfirmPassword('');
+        }}
+        title="Reset Password"
+        description="Choose how to reset the password for this user"
+      >
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="radio"
+                id="reset-email"
+                checked={resetPasswordMethod === 'email'}
+                onChange={() => setResetPasswordMethod('email')}
+                className="w-4 h-4"
+              />
+              <label htmlFor="reset-email" className="cursor-pointer">
+                <div className="font-medium">Send reset email</div>
+                <div className="text-sm text-gray-400">
+                  Send a password reset link via email through the email provider module
+                </div>
+              </label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="radio"
+                id="reset-direct"
+                checked={resetPasswordMethod === 'direct'}
+                onChange={() => setResetPasswordMethod('direct')}
+                className="w-4 h-4"
+              />
+              <label htmlFor="reset-direct" className="cursor-pointer">
+                <div className="font-medium">Set password directly</div>
+                <div className="text-sm text-gray-400">
+                  Type in a new password to change it immediately
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {resetPasswordMethod === 'direct' && (
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Confirm new password"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setResetPasswordModalOpen(false);
+                setResetPasswordMethod('email');
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleResetPasswordSubmit} loading={mutating}>
+              {resetPasswordMethod === 'email' ? 'Send Reset Email' : 'Set Password'}
             </Button>
           </div>
         </div>
