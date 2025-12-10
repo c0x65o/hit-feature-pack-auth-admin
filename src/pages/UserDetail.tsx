@@ -12,6 +12,7 @@ import {
   Monitor,
   Globe,
   Mail,
+  CheckCircle,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import {
@@ -43,6 +44,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     deleteUser,
     resetPassword,
     resendVerification,
+    verifyEmail,
     updateRoles,
     lockUser,
     unlockUser,
@@ -112,6 +114,18 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       try {
         await resendVerification(email);
         alert('Verification email sent!');
+      } catch {
+        // Error handled by hook
+      }
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (confirm(`Mark email as verified for ${email}?`)) {
+      try {
+        await verifyEmail(email);
+        refresh();
+        alert('Email verified successfully!');
       } catch {
         // Error handled by hook
       }
@@ -220,10 +234,16 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             Back
           </Button>
           {!user.email_verified && (
-            <Button variant="secondary" onClick={handleResendVerification} disabled={mutating}>
-              <Mail size={16} className="mr-2" />
-              Resend Verification
-            </Button>
+            <>
+              <Button variant="secondary" onClick={handleVerifyEmail} disabled={mutating}>
+                <CheckCircle size={16} className="mr-2" />
+                Verify
+              </Button>
+              <Button variant="secondary" onClick={handleResendVerification} disabled={mutating}>
+                <Mail size={16} className="mr-2" />
+                Resend Verification
+              </Button>
+            </>
           )}
           <Button variant="secondary" onClick={handleResetPassword} disabled={mutating}>
             <Key size={16} className="mr-2" />

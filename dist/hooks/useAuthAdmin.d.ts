@@ -116,6 +116,7 @@ export declare function useUserMutations(): {
     deleteUser: (email: string) => Promise<void>;
     resetPassword: (email: string, sendEmail?: boolean, password?: string) => Promise<void>;
     resendVerification: (email: string) => Promise<void>;
+    verifyEmail: (email: string) => Promise<void>;
     updateRoles: (email: string, roles: string[]) => Promise<void>;
     lockUser: (email: string) => Promise<void>;
     unlockUser: (email: string) => Promise<void>;

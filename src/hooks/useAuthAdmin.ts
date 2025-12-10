@@ -519,6 +519,21 @@ export function useUserMutations() {
     }
   };
 
+  const verifyEmail = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/verify`, {
+        method: 'PUT',
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateRoles = async (email: string, roles: string[]) => {
     setLoading(true);
     setError(null);
@@ -573,6 +588,7 @@ export function useUserMutations() {
     deleteUser,
     resetPassword,
     resendVerification,
+    verifyEmail,
     updateRoles,
     lockUser,
     unlockUser,
