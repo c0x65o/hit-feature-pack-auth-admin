@@ -8,7 +8,8 @@ interface User {
   email: string;
   email_verified: boolean;
   two_factor_enabled: boolean;
-  roles?: string[];
+  role?: string;  // Single role string
+  roles?: string[];  // Legacy support - will be removed
   metadata?: { role?: string; [key: string]: unknown };
   created_at: string;
   updated_at?: string;
@@ -485,21 +486,30 @@ export function useUserMutations() {
     setLoading(true);
     setError(null);
     try {
+      // Always use admin endpoint for admin actions
       if (sendEmail) {
-        // Use forgot-password endpoint to trigger password reset email
-        await fetchWithAuth('/forgot-password', {
-          method: 'POST',
-          body: JSON.stringify({ email }),
-        });
+        // Use admin endpoint to send password reset email
+        const response = await fetchWithAuth<{ status: string; message: string }>(
+          `/admin/users/${encodeURIComponent(email)}/reset-password`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ send_email: true }),
+          }
+        );
+        return response;
       } else {
         // Use admin endpoint to set password directly
         if (!password) {
           throw new Error('Password is required when setting directly');
         }
-        await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
-          method: 'POST',
-          body: JSON.stringify({ password, send_email: false }),
-        });
+        const response = await fetchWithAuth<{ status: string; message: string }>(
+          `/admin/users/${encodeURIComponent(email)}/reset-password`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ password, send_email: false }),
+          }
+        );
+        return response;
       }
     } catch (e) {
       setError(e as Error);
@@ -539,13 +549,13 @@ export function useUserMutations() {
     }
   };
 
-  const updateRoles = async (email: string, roles: string[]) => {
+  const updateRoles = async (email: string, role: string) => {
     setLoading(true);
     setError(null);
     try {
       await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
         method: 'PUT',
-        body: JSON.stringify({ roles }),
+        body: JSON.stringify({ role }),
       });
     } catch (e) {
       setError(e as Error);

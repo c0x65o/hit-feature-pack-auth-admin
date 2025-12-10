@@ -3,6 +3,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from 'react';
 import { Eye, Key, Trash2, UserPlus, Lock, Unlock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDate } from '@hit/sdk';
 import { useUsers, useUserMutations, useAuthAdminConfig } from '../hooks/useAuthAdmin';
 export function Users({ onNavigate }) {
     const { Page, Card, Button, Badge, Table, Modal, Input, Alert, Spinner } = useUi();
@@ -80,10 +81,10 @@ export function Users({ onNavigate }) {
             }
         }
     };
-    const formatDate = (dateStr) => {
+    const formatDateOrNever = (dateStr) => {
         if (!dateStr)
             return 'Never';
-        return new Date(dateStr).toLocaleDateString();
+        return formatDate(dateStr);
     };
     return (_jsxs(Page, { title: "Users", description: "Manage user accounts", actions: adminConfig?.allow_signup !== false ? (_jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] })) : null, children: [_jsx(Card, { children: _jsx("div", { className: "max-w-md", children: _jsx(Input, { label: "Search Users", value: search, onChange: setSearch, placeholder: "Search by email..." }) }) }), error && (_jsx(Alert, { variant: "error", title: "Error loading users", children: error.message })), _jsx(Card, { children: loading ? (_jsx("div", { className: "flex justify-center py-12", children: _jsx(Spinner, { size: "lg" }) })) : (_jsxs(_Fragment, { children: [_jsx(Table, { columns: [
                                 {
@@ -106,22 +107,27 @@ export function Users({ onNavigate }) {
                                     ]
                                     : []),
                                 {
-                                    key: 'roles',
-                                    label: 'Roles',
+                                    key: 'role',
+                                    label: 'Role',
                                     render: (value) => {
-                                        const roles = value;
-                                        return (_jsx("div", { className: "flex flex-wrap gap-1", children: roles?.map((role) => (_jsx(Badge, { variant: role === 'admin' ? 'info' : 'default', children: role }, role))) }));
+                                        // Support both new single role and legacy roles array
+                                        const userRole = value?.role
+                                            || (value?.roles && value.roles.length > 0
+                                                ? value.roles[0]
+                                                : 'user')
+                                            || 'user';
+                                        return (_jsx(Badge, { variant: userRole === 'admin' ? 'info' : 'default', children: userRole }));
                                     },
                                 },
                                 {
                                     key: 'created_at',
                                     label: 'Created',
-                                    render: (value) => formatDate(value),
+                                    render: (value) => formatDateOrNever(value),
                                 },
                                 {
                                     key: 'last_login',
                                     label: 'Last Login',
-                                    render: (value) => formatDate(value),
+                                    render: (value) => formatDateOrNever(value),
                                 },
                                 {
                                     key: 'actions',
@@ -141,7 +147,8 @@ export function Users({ onNavigate }) {
                                 ...(adminConfig?.two_factor_auth !== false
                                     ? { two_factor_enabled: user.two_factor_enabled }
                                     : {}),
-                                roles: user.roles,
+                                role: user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user',
+                                roles: user.roles, // Keep for backwards compatibility
                                 created_at: user.created_at,
                                 last_login: user.last_login,
                                 locked: user.locked,

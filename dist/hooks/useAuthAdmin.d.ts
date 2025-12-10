@@ -5,6 +5,7 @@ interface User {
     email: string;
     email_verified: boolean;
     two_factor_enabled: boolean;
+    role?: string;
     roles?: string[];
     metadata?: {
         role?: string;
@@ -115,10 +116,13 @@ export declare function useUserMutations(): {
         roles?: string[];
     }) => Promise<void>;
     deleteUser: (email: string) => Promise<void>;
-    resetPassword: (email: string, sendEmail?: boolean, password?: string) => Promise<void>;
+    resetPassword: (email: string, sendEmail?: boolean, password?: string) => Promise<{
+        status: string;
+        message: string;
+    }>;
     resendVerification: (email: string) => Promise<void>;
     verifyEmail: (email: string) => Promise<void>;
-    updateRoles: (email: string, roles: string[]) => Promise<void>;
+    updateRoles: (email: string, role: string) => Promise<void>;
     lockUser: (email: string) => Promise<void>;
     unlockUser: (email: string) => Promise<void>;
     loading: boolean;

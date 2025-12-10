@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Trash2, RefreshCw, Monitor, Smartphone, Globe } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateTime, formatRelativeTime } from '@hit/sdk';
 import { useSessions, useSessionMutations, type Session } from '../hooks/useAuthAdmin';
 
 interface SessionsProps {
@@ -40,10 +41,6 @@ export function Sessions({ onNavigate }: SessionsProps) {
         // Error handled by hook
       }
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
   };
 
   const getDeviceIcon = (userAgent: string) => {
@@ -140,7 +137,28 @@ export function Sessions({ onNavigate }: SessionsProps) {
                 {
                   key: 'created_at',
                   label: 'Started',
-                  render: (value) => formatDate(value as string),
+                  render: (value) => formatDateTime(value as string),
+                },
+                {
+                  key: 'expires_at',
+                  label: 'Expires',
+                  render: (value) => {
+                    const expiresAt = value as string;
+                    if (!expiresAt) return '—';
+                    const expired = isExpired(expiresAt);
+                    return (
+                      <div className="flex flex-col">
+                        <span className={expired ? 'text-gray-500 line-through' : ''}>
+                          {formatDateTime(expiresAt)}
+                        </span>
+                        {!expired && (
+                          <span className="text-xs text-gray-400">
+                            {formatRelativeTime(expiresAt)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: 'status',

@@ -3,6 +3,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from 'react';
 import { Trash2, RefreshCw, Monitor, Smartphone, Globe } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateTime, formatRelativeTime } from '@hit/sdk';
 import { useSessions, useSessionMutations } from '../hooks/useAuthAdmin';
 export function Sessions({ onNavigate }) {
     const { Page, Card, Button, Badge, Table, Input, Alert, Spinner } = useUi();
@@ -32,9 +33,6 @@ export function Sessions({ onNavigate }) {
                 // Error handled by hook
             }
         }
-    };
-    const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleString();
     };
     const getDeviceIcon = (userAgent) => {
         const ua = userAgent?.toLowerCase() || '';
@@ -78,7 +76,18 @@ export function Sessions({ onNavigate }) {
                                 {
                                     key: 'created_at',
                                     label: 'Started',
-                                    render: (value) => formatDate(value),
+                                    render: (value) => formatDateTime(value),
+                                },
+                                {
+                                    key: 'expires_at',
+                                    label: 'Expires',
+                                    render: (value) => {
+                                        const expiresAt = value;
+                                        if (!expiresAt)
+                                            return '—';
+                                        const expired = isExpired(expiresAt);
+                                        return (_jsxs("div", { className: "flex flex-col", children: [_jsx("span", { className: expired ? 'text-gray-500 line-through' : '', children: formatDateTime(expiresAt) }), !expired && (_jsx("span", { className: "text-xs text-gray-400", children: formatRelativeTime(expiresAt) }))] }));
+                                    },
                                 },
                                 {
                                     key: 'status',

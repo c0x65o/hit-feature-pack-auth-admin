@@ -3,6 +3,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState, useEffect } from 'react';
 import { RefreshCw, Download, Eye } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateTime } from '@hit/sdk';
 import { useAuditLog, useAuthAdminConfig } from '../hooks/useAuthAdmin';
 export function AuditLog({ onNavigate }) {
     const { Page, Card, Button, Badge, Table, Modal, Input, Alert, Spinner } = useUi();
@@ -29,9 +30,6 @@ export function AuditLog({ onNavigate }) {
             navigate('/admin');
         }
     }, [adminConfig, configLoading]);
-    const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleString();
-    };
     const getEventBadgeVariant = (eventType) => {
         const type = eventType.toLowerCase();
         if (type.includes('success') || type.includes('created') || type.includes('enabled'))
@@ -97,7 +95,7 @@ export function AuditLog({ onNavigate }) {
                                 {
                                     key: 'created_at',
                                     label: 'Time',
-                                    render: (value) => _jsx("span", { className: "text-sm", children: formatDate(value) }),
+                                    render: (value) => _jsx("span", { className: "text-sm", children: formatDateTime(value) }),
                                 },
                                 {
                                     key: 'user_email',
@@ -134,7 +132,7 @@ export function AuditLog({ onNavigate }) {
                                 user_agent: entry.user_agent,
                                 details: entry.details,
                                 metadata: entry.metadata || entry.details,
-                            })), emptyMessage: "No audit log entries found" }), data && data.total_pages > 1 && (_jsxs("div", { className: "flex items-center justify-between pt-4 mt-4 border-t border-gray-800", children: [_jsxs("p", { className: "text-sm text-gray-400", children: ["Page ", data.page, " of ", data.total_pages] }), _jsxs("div", { className: "flex gap-2", children: [_jsx(Button, { variant: "secondary", size: "sm", disabled: page === 1, onClick: () => setPage(page - 1), children: "Previous" }), _jsx(Button, { variant: "secondary", size: "sm", disabled: page >= data.total_pages, onClick: () => setPage(page + 1), children: "Next" })] })] }))] })) }), _jsx(Modal, { open: !!selectedEntry, onClose: () => setSelectedEntry(null), title: "Audit Log Entry", size: "lg", children: selectedEntry && (_jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "grid grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "Time" }), _jsx("p", { className: "text-gray-100", children: formatDate(selectedEntry.created_at) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "User" }), _jsx("p", { className: "text-gray-100", children: selectedEntry.user_email })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "Event" }), _jsx(Badge, { variant: getEventBadgeVariant(selectedEntry.event_type), children: formatEventType(selectedEntry.event_type) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "IP Address" }), _jsx("p", { className: "font-mono text-gray-100", children: selectedEntry.ip_address })] })] }), selectedEntry.user_agent && (_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400 mb-1", children: "User Agent" }), _jsx("p", { className: "text-sm text-gray-400 break-all", children: selectedEntry.user_agent })] })), selectedEntry.details && Object.keys(selectedEntry.details).length > 0 && (_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400 mb-1", children: "Additional Details" }), _jsx("pre", { className: "bg-gray-800 rounded-lg p-3 text-sm overflow-auto", children: JSON.stringify(selectedEntry.details, null, 2) })] })), _jsx("div", { className: "flex justify-end gap-3 pt-4", children: _jsx(Button, { variant: "ghost", onClick: () => setSelectedEntry(null), children: "Close" }) })] })) })] }));
+                            })), emptyMessage: "No audit log entries found" }), data && data.total_pages > 1 && (_jsxs("div", { className: "flex items-center justify-between pt-4 mt-4 border-t border-gray-800", children: [_jsxs("p", { className: "text-sm text-gray-400", children: ["Page ", data.page, " of ", data.total_pages] }), _jsxs("div", { className: "flex gap-2", children: [_jsx(Button, { variant: "secondary", size: "sm", disabled: page === 1, onClick: () => setPage(page - 1), children: "Previous" }), _jsx(Button, { variant: "secondary", size: "sm", disabled: page >= data.total_pages, onClick: () => setPage(page + 1), children: "Next" })] })] }))] })) }), _jsx(Modal, { open: !!selectedEntry, onClose: () => setSelectedEntry(null), title: "Audit Log Entry", size: "lg", children: selectedEntry && (_jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "grid grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "Time" }), _jsx("p", { className: "text-gray-100", children: formatDateTime(selectedEntry.created_at) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "User" }), _jsx("p", { className: "text-gray-100", children: selectedEntry.user_email })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "Event" }), _jsx(Badge, { variant: getEventBadgeVariant(selectedEntry.event_type), children: formatEventType(selectedEntry.event_type) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400", children: "IP Address" }), _jsx("p", { className: "font-mono text-gray-100", children: selectedEntry.ip_address })] })] }), selectedEntry.user_agent && (_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400 mb-1", children: "User Agent" }), _jsx("p", { className: "text-sm text-gray-400 break-all", children: selectedEntry.user_agent })] })), selectedEntry.details && Object.keys(selectedEntry.details).length > 0 && (_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-medium text-gray-400 mb-1", children: "Additional Details" }), _jsx("pre", { className: "bg-gray-800 rounded-lg p-3 text-sm overflow-auto", children: JSON.stringify(selectedEntry.details, null, 2) })] })), _jsx("div", { className: "flex justify-end gap-3 pt-4", children: _jsx(Button, { variant: "ghost", onClick: () => setSelectedEntry(null), children: "Close" }) })] })) })] }));
 }
 export default AuditLog;
 //# sourceMappingURL=AuditLog.js.map

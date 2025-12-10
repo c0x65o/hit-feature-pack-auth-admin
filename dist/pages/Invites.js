@@ -3,6 +3,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from 'react';
 import { RefreshCw, Trash2, Send, UserPlus, Clock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateShort } from '@hit/sdk';
 import { useInvites, useInviteMutations } from '../hooks/useAuthAdmin';
 export function Invites({ onNavigate }) {
     const { Page, Card, Button, Badge, Table, Modal, Input, Select, Alert, Spinner, EmptyState } = useUi();
@@ -46,9 +47,6 @@ export function Invites({ onNavigate }) {
             }
         }
     };
-    const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleDateString();
-    };
     const isExpired = (expiresAt) => {
         return new Date(expiresAt) < new Date();
     };
@@ -75,7 +73,7 @@ export function Invites({ onNavigate }) {
                                 {
                                     key: 'expires_at',
                                     label: 'Expires',
-                                    render: (value) => formatDate(value),
+                                    render: (value) => formatDateShort(value),
                                 },
                                 {
                                     key: 'actions',

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { RefreshCw, Trash2, Send, UserPlus, Clock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateShort } from '@hit/sdk';
 import { useInvites, useInviteMutations } from '../hooks/useAuthAdmin';
 
 interface InvitesProps {
@@ -54,9 +55,6 @@ export function Invites({ onNavigate }: InvitesProps) {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString();
-  };
 
   const isExpired = (expiresAt: string) => {
     return new Date(expiresAt) < new Date();
@@ -140,7 +138,7 @@ export function Invites({ onNavigate }: InvitesProps) {
                 {
                   key: 'expires_at',
                   label: 'Expires',
-                  render: (value) => formatDate(value as string),
+                  render: (value) => formatDateShort(value as string),
                 },
                 {
                   key: 'actions',

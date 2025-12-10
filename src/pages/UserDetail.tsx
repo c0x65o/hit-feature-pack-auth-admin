@@ -15,11 +15,13 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateTime } from '@hit/sdk';
 import {
   useUser,
   useSessions,
   useUserMutations,
   useSessionMutations,
+  useAuthAdminConfig,
 } from '../hooks/useAuthAdmin';
 
 interface UserDetailProps {
@@ -28,17 +30,37 @@ interface UserDetailProps {
 }
 
 export function UserDetail({ email, onNavigate }: UserDetailProps) {
-  const { Page, Card, Button, Badge, Table, Modal, Alert, Spinner, EmptyState, Checkbox } = useUi();
+  const { Page, Card, Button, Badge, Table, Modal, Alert, Spinner, EmptyState, Select } = useUi();
   
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [rolesModalOpen, setRolesModalOpen] = useState(false);
-  const [newRoles, setNewRoles] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState<string>('');
+  const [availableRoles, setAvailableRoles] = useState<string[]>(['admin', 'user']);
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [resetPasswordMethod, setResetPasswordMethod] = useState<'email' | 'direct'>('email');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState<string | null>(null);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
 
   const { user, loading, error, refresh } = useUser(email);
+  const { config: authConfig } = useAuthAdminConfig();
+  
+  // Fetch available roles from features endpoint
+  React.useEffect(() => {
+    const fetchAvailableRoles = async () => {
+      try {
+        const response = await fetch('/features');
+        const data = await response.json();
+        const roles = data.features?.available_roles || ['admin', 'user'];
+        setAvailableRoles(roles);
+      } catch (e) {
+        // Fallback to default roles
+        setAvailableRoles(['admin', 'user']);
+      }
+    };
+    fetchAvailableRoles();
+  }, []);
   const { data: sessionsData, refresh: refreshSessions } = useSessions({ search: email });
   const {
     deleteUser,
@@ -71,40 +93,53 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
 
   const handleResetPassword = async () => {
     setResetPasswordModalOpen(true);
+    setResetPasswordSuccess(null);
+    setResetPasswordError(null);
   };
 
   const handleResetPasswordSubmit = async () => {
+    setResetPasswordSuccess(null);
+    setResetPasswordError(null);
+    
     if (resetPasswordMethod === 'email') {
       try {
         await resetPassword(email, true);
-        alert('Password reset email sent!');
-        setResetPasswordModalOpen(false);
-        setResetPasswordMethod('email');
-        setNewPassword('');
-        setConfirmPassword('');
-      } catch {
-        // Error handled by hook
+        setResetPasswordSuccess('Password reset email sent successfully!');
+        setTimeout(() => {
+          setResetPasswordModalOpen(false);
+          setResetPasswordMethod('email');
+          setNewPassword('');
+          setConfirmPassword('');
+          setResetPasswordSuccess(null);
+        }, 2000);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to send password reset email';
+        setResetPasswordError(errorMessage);
       }
     } else {
       // Direct password set
       if (!newPassword) {
-        alert('Password is required');
+        setResetPasswordError('Password is required');
         return;
       }
       if (newPassword !== confirmPassword) {
-        alert('Passwords do not match');
+        setResetPasswordError('Passwords do not match');
         return;
       }
       try {
         await resetPassword(email, false, newPassword);
-        alert('Password has been reset!');
-        setResetPasswordModalOpen(false);
-        setResetPasswordMethod('email');
-        setNewPassword('');
-        setConfirmPassword('');
-        refresh();
-      } catch {
-        // Error handled by hook
+        setResetPasswordSuccess('Password has been reset successfully!');
+        setTimeout(() => {
+          setResetPasswordModalOpen(false);
+          setResetPasswordMethod('email');
+          setNewPassword('');
+          setConfirmPassword('');
+          setResetPasswordSuccess(null);
+          refresh();
+        }, 2000);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
+        setResetPasswordError(errorMessage);
       }
     }
   };
@@ -146,8 +181,12 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
   };
 
   const handleUpdateRoles = async () => {
+    if (!newRole) {
+      alert('Please select a role');
+      return;
+    }
     try {
-      await updateRoles(email, newRoles);
+      await updateRoles(email, newRole);
       setRolesModalOpen(false);
       refresh();
     } catch {
@@ -177,20 +216,16 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
+  const formatDateOrNever = (dateStr: string | null | undefined) => {
     if (!dateStr) return 'Never';
-    return new Date(dateStr).toLocaleString();
+    return formatDateTime(dateStr);
   };
 
   const openRolesModal = () => {
-    setNewRoles(user?.roles || []);
+    // Support both new single role and legacy roles array
+    const currentRole = user?.role || (user?.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
+    setNewRole(currentRole);
     setRolesModalOpen(true);
-  };
-
-  const toggleRole = (role: string) => {
-    setNewRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-    );
   };
 
   if (loading) {
@@ -274,12 +309,14 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
                 {user.email_verified ? 'Yes' : 'No'}
               </Badge>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">2FA</span>
-              <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
-                {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
-              </Badge>
-            </div>
+            {authConfig?.two_factor_auth !== false && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">2FA</span>
+                <Badge variant={user.two_factor_enabled ? 'success' : 'default'}>
+                  {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-400">Status</span>
               <Badge variant={user.locked ? 'error' : 'success'}>
@@ -288,30 +325,34 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Created</span>
-              <span className="text-gray-100">{formatDate(user.created_at)}</span>
+              <span className="text-gray-100">{formatDateOrNever(user.created_at)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Last Login</span>
-              <span className="text-gray-100">{formatDate(user.last_login ?? null)}</span>
+              <span className="text-gray-100">{formatDateOrNever(user.last_login ?? null)}</span>
             </div>
           </div>
         </Card>
 
         <Card
-          title="Roles"
+          title="Role"
           footer={
             <Button variant="secondary" size="sm" onClick={openRolesModal}>
               <Shield size={16} className="mr-2" />
-              Edit Roles
+              Edit Role
             </Button>
           }
         >
           <div className="flex flex-wrap gap-2">
-            {(user.roles || []).map((role) => (
-              <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
-                {role}
-              </Badge>
-            ))}
+            {(() => {
+              // Support both new single role and legacy roles array
+              const userRole = user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
+              return (
+                <Badge key={userRole} variant={userRole === 'admin' ? 'info' : 'default'}>
+                  {userRole}
+                </Badge>
+              );
+            })()}
           </div>
         </Card>
       </div>
@@ -349,7 +390,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               {
                 key: 'created_at',
                 label: 'Started',
-                render: (value) => formatDate(value as string),
+                render: (value) => formatDateOrNever(value as string),
               },
               {
                 key: 'current',
@@ -414,26 +455,26 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       <Modal
         open={rolesModalOpen}
         onClose={() => setRolesModalOpen(false)}
-        title="Edit Roles"
-        description="Select the roles for this user"
+        title="Edit Role"
+        description="Select the role for this user"
       >
         <div className="space-y-4">
-          <div className="space-y-2">
-            {['user', 'admin', 'moderator'].map((role) => (
-              <Checkbox
-                key={role}
-                label={role.charAt(0).toUpperCase() + role.slice(1)}
-                checked={newRoles.includes(role)}
-                onChange={() => toggleRole(role)}
-              />
-            ))}
-          </div>
+          <Select
+            label="Role"
+            value={newRole}
+            onChange={(value) => setNewRole(value)}
+            options={availableRoles.map((role) => ({
+              value: role,
+              label: role.charAt(0).toUpperCase() + role.slice(1),
+            }))}
+            placeholder="Select a role"
+          />
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setRolesModalOpen(false)}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleUpdateRoles} loading={mutating}>
-              Save Roles
+              Save Role
             </Button>
           </div>
         </div>
@@ -447,11 +488,27 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           setResetPasswordMethod('email');
           setNewPassword('');
           setConfirmPassword('');
+          setResetPasswordSuccess(null);
+          setResetPasswordError(null);
         }}
         title="Reset Password"
         description="Choose how to reset the password for this user"
       >
         <div className="space-y-4">
+          {/* Success Alert */}
+          {resetPasswordSuccess && (
+            <Alert variant="success" title="Success">
+              {resetPasswordSuccess}
+            </Alert>
+          )}
+          
+          {/* Error Alert */}
+          {resetPasswordError && (
+            <Alert variant="error" title="Error">
+              {resetPasswordError}
+            </Alert>
+          )}
+          
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <input
@@ -522,6 +579,8 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
                 setResetPasswordMethod('email');
                 setNewPassword('');
                 setConfirmPassword('');
+                setResetPasswordSuccess(null);
+                setResetPasswordError(null);
               }}
             >
               Cancel

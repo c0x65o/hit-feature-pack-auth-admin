@@ -13,6 +13,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatRelativeTime } from '@hit/sdk';
 import { useStats, useAuditLog, useAuthAdminConfig } from '../hooks/useAuthAdmin';
 
 interface DashboardProps {
@@ -34,18 +35,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
-  };
 
   const getEventBadgeVariant = (eventType: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
     if (eventType.includes('login_success')) return 'success';
@@ -240,7 +229,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <div className="mt-1 text-sm text-gray-400 flex items-center gap-2">
                       <span>{entry.ip_address}</span>
                       <span>•</span>
-                      <span>{formatDate(entry.created_at)}</span>
+                      <span>{formatRelativeTime(entry.created_at)}</span>
                     </div>
                   </div>
                 </div>

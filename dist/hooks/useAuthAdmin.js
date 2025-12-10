@@ -375,22 +375,25 @@ export function useUserMutations() {
         setLoading(true);
         setError(null);
         try {
+            // Always use admin endpoint for admin actions
             if (sendEmail) {
-                // Use forgot-password endpoint to trigger password reset email
-                await fetchWithAuth('/forgot-password', {
+                // Use admin endpoint to send password reset email
+                const response = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
                     method: 'POST',
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ send_email: true }),
                 });
+                return response;
             }
             else {
                 // Use admin endpoint to set password directly
                 if (!password) {
                     throw new Error('Password is required when setting directly');
                 }
-                await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
+                const response = await fetchWithAuth(`/admin/users/${encodeURIComponent(email)}/reset-password`, {
                     method: 'POST',
                     body: JSON.stringify({ password, send_email: false }),
                 });
+                return response;
             }
         }
         catch (e) {
@@ -433,13 +436,13 @@ export function useUserMutations() {
             setLoading(false);
         }
     };
-    const updateRoles = async (email, roles) => {
+    const updateRoles = async (email, role) => {
         setLoading(true);
         setError(null);
         try {
             await fetchWithAuth(`/users/${encodeURIComponent(email)}`, {
                 method: 'PUT',
-                body: JSON.stringify({ roles }),
+                body: JSON.stringify({ role }),
             });
         }
         catch (e) {

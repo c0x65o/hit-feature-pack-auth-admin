@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Eye, Key, Trash2, UserPlus, Lock, Unlock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDate } from '@hit/sdk';
 import { useUsers, useUserMutations, useAuthAdminConfig, type User } from '../hooks/useAuthAdmin';
 
 interface UsersProps {
@@ -89,9 +90,9 @@ export function Users({ onNavigate }: UsersProps) {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
+  const formatDateOrNever = (dateStr: string | null | undefined) => {
     if (!dateStr) return 'Never';
-    return new Date(dateStr).toLocaleDateString();
+    return formatDate(dateStr);
   };
 
   return (
@@ -169,30 +170,31 @@ export function Users({ onNavigate }: UsersProps) {
                     ]
                   : []),
                 {
-                  key: 'roles',
-                  label: 'Roles',
+                  key: 'role',
+                  label: 'Role',
                   render: (value) => {
-                    const roles = value as string[] | undefined;
+                    // Support both new single role and legacy roles array
+                    const userRole = (value as { role?: string; roles?: string[] })?.role 
+                      || ((value as { role?: string; roles?: string[] })?.roles && (value as { role?: string; roles?: string[] }).roles!.length > 0 
+                        ? (value as { role?: string; roles?: string[] }).roles![0] 
+                        : 'user') 
+                      || 'user';
                     return (
-                      <div className="flex flex-wrap gap-1">
-                        {roles?.map((role) => (
-                          <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
-                            {role}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Badge variant={userRole === 'admin' ? 'info' : 'default'}>
+                        {userRole}
+                      </Badge>
                     );
                   },
                 },
                 {
                   key: 'created_at',
                   label: 'Created',
-                  render: (value) => formatDate(value as string),
+                  render: (value) => formatDateOrNever(value as string | null),
                 },
                 {
                   key: 'last_login',
                   label: 'Last Login',
-                  render: (value) => formatDate(value as string),
+                  render: (value) => formatDateOrNever(value as string | null),
                 },
                 {
                   key: 'actions',
@@ -246,7 +248,8 @@ export function Users({ onNavigate }: UsersProps) {
               ...(adminConfig?.two_factor_auth !== false
                 ? { two_factor_enabled: user.two_factor_enabled }
                 : {}),
-              roles: user.roles,
+              role: user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user',
+              roles: user.roles, // Keep for backwards compatibility
               created_at: user.created_at,
               last_login: user.last_login,
               locked: user.locked,

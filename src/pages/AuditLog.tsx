@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Download, Eye } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
+import { formatDateTime } from '@hit/sdk';
 import { useAuditLog, useAuthAdminConfig, type AuditLogEntry } from '../hooks/useAuthAdmin';
 
 interface AuditLogProps {
@@ -39,9 +40,6 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     }
   }, [adminConfig, configLoading]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString();
-  };
 
   const getEventBadgeVariant = (eventType: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
     const type = eventType.toLowerCase();
@@ -160,7 +158,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
                 {
                   key: 'created_at',
                   label: 'Time',
-                  render: (value) => <span className="text-sm">{formatDate(value as string)}</span>,
+                  render: (value) => <span className="text-sm">{formatDateTime(value as string)}</span>,
                 },
                 {
                   key: 'user_email',
@@ -271,7 +269,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400">Time</label>
-                <p className="text-gray-100">{formatDate(selectedEntry.created_at)}</p>
+                <p className="text-gray-100">{formatDateTime(selectedEntry.created_at)}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-400">User</label>
