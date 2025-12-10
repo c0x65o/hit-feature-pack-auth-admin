@@ -255,9 +255,13 @@ export function useAuditLog(options = {}) {
             if (search)
                 params.set('user_email', search);
             // Auth module returns {events: [], total: N, limit: N, offset: N}
+            // Events have 'metadata' field from API, map it to both 'metadata' and 'details' for compatibility
             const result = await fetchWithAuth(`/audit-log?${params}`);
             setData({
-                items: result.events,
+                items: result.events.map(event => ({
+                    ...event,
+                    details: event.metadata || event.details, // Map metadata to details for backward compatibility
+                })),
                 total: result.total,
                 page,
                 page_size: pageSize,

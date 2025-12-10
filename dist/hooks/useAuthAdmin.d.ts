@@ -32,6 +32,7 @@ interface AuditLogEntry {
     ip_address: string;
     user_agent?: string;
     details?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
     created_at: string;
 }
 interface Invite {

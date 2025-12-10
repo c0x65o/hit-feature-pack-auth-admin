@@ -34,6 +34,7 @@ interface AuditLogEntry {
   ip_address: string;
   user_agent?: string;
   details?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
   created_at: string;
 }
 
@@ -358,10 +359,14 @@ export function useAuditLog(options: UseQueryOptions = {}) {
       if (search) params.set('user_email', search);
 
       // Auth module returns {events: [], total: N, limit: N, offset: N}
-      const result = await fetchWithAuth<{events: AuditLogEntry[], total: number, limit: number, offset: number}>(`/audit-log?${params}`);
+      // Events have 'metadata' field from API, map it to both 'metadata' and 'details' for compatibility
+      const result = await fetchWithAuth<{events: Array<AuditLogEntry & {metadata?: Record<string, unknown>}>, total: number, limit: number, offset: number}>(`/audit-log?${params}`);
       
       setData({
-        items: result.events,
+        items: result.events.map(event => ({
+          ...event,
+          details: event.metadata || event.details, // Map metadata to details for backward compatibility
+        })),
         total: result.total,
         page,
         page_size: pageSize,

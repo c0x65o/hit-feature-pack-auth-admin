@@ -56,6 +56,25 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     return eventType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
+  const getFailureReason = (eventType: string, metadata?: Record<string, unknown>): string | null => {
+    if (eventType !== 'login_failure' || !metadata) return null;
+    const reason = metadata.reason as string | undefined;
+    if (!reason) return null;
+    
+    // Format the reason for display
+    const reasonMap: Record<string, string> = {
+      'email_not_verified': 'Email not verified',
+      'invalid_password': 'Invalid password',
+      'user_not_found': 'User not found',
+      'password_required': 'Password required',
+      'two_factor_code_required': '2FA code required',
+      'invalid_two_factor_code': 'Invalid 2FA code',
+      'rate_limit_exceeded': 'Rate limit exceeded',
+    };
+    
+    return reasonMap[reason] || reason.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   const handleExport = () => {
     if (!data?.items) return;
     
@@ -158,11 +177,24 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
                 {
                   key: 'event_type',
                   label: 'Event',
-                  render: (value) => (
-                    <Badge variant={getEventBadgeVariant(value as string)}>
-                      {formatEventType(value as string)}
-                    </Badge>
-                  ),
+                  render: (value, row) => {
+                    const eventType = value as string;
+                    const metadata = (row as any).metadata || (row as any).details;
+                    const failureReason = getFailureReason(eventType, metadata);
+                    
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <Badge variant={getEventBadgeVariant(eventType)}>
+                          {formatEventType(eventType)}
+                        </Badge>
+                        {failureReason && (
+                          <span className="text-xs text-gray-400 italic">
+                            {failureReason}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: 'ip_address',
@@ -193,6 +225,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
                 ip_address: entry.ip_address,
                 user_agent: entry.user_agent,
                 details: entry.details,
+                metadata: entry.metadata || entry.details,
               }))}
               emptyMessage="No audit log entries found"
             />
