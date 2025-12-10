@@ -1,6 +1,6 @@
 {
   "name": "@hit/feature-pack-auth-admin",
-  "version": "2.0.23",
+  "version": "2.0.24",
   "description": "Admin dashboard feature pack for user management, sessions, and audit logs. Uses @hit/ui-kit for shell-agnostic UI.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,13 +28,13 @@
     "react": "^18.0.0 || ^19.0.0",
     "next": "^14.0.0 || ^15.0.0",
     "@hit/sdk": "*",
-    "lucide-react": "^0.400.0"
+    "lucide-react": ">=0.263.0"
   },
   "devDependencies": {
     "@hit/ui-kit": "file:../hit-ui-kit",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
-    "lucide-react": "^0.400.0",
+    "lucide-react": "^0.460.0",
     "typescript": "^5.0.0"
   },
   "keywords": [
