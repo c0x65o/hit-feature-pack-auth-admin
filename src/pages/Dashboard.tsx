@@ -96,6 +96,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const isAuthError = authError && 'status' in authError && 
     ((authError as { status: number }).status === 401 || (authError as { status: number }).status === 403);
 
+  // Calculate number of visible stat cards
+  const visibleCardsCount = 2 + // Total Users + Active Sessions (always visible)
+    (!configLoading && authConfig?.two_factor_auth ? 1 : 0) + // 2FA Adoption
+    (!configLoading && authConfig?.rate_limiting ? 1 : 0); // Failed Logins
+
+  // Determine grid columns based on visible cards
+  const getGridCols = () => {
+    if (visibleCardsCount === 2) return 'lg:grid-cols-2';
+    if (visibleCardsCount === 3) return 'lg:grid-cols-3';
+    return 'lg:grid-cols-4';
+  };
+
   return (
     <Page
       title="Admin Dashboard"
@@ -122,7 +134,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${getGridCols()} gap-6`}>
         <StatsCard
           title="Total Users"
           value={statsLoading ? '...' : (stats?.total_users ?? 0)}

@@ -34,9 +34,21 @@ export function Dashboard({ onNavigate }) {
     const authError = statsError || auditError;
     const isAuthError = authError && 'status' in authError &&
         (authError.status === 401 || authError.status === 403);
+    // Calculate number of visible stat cards
+    const visibleCardsCount = 2 + // Total Users + Active Sessions (always visible)
+        (!configLoading && authConfig?.two_factor_auth ? 1 : 0) + // 2FA Adoption
+        (!configLoading && authConfig?.rate_limiting ? 1 : 0); // Failed Logins
+    // Determine grid columns based on visible cards
+    const getGridCols = () => {
+        if (visibleCardsCount === 2)
+            return 'lg:grid-cols-2';
+        if (visibleCardsCount === 3)
+            return 'lg:grid-cols-3';
+        return 'lg:grid-cols-4';
+    };
     return (_jsxs(Page, { title: "Admin Dashboard", description: "Overview of user activity and system status", actions: _jsxs(Button, { variant: "primary", onClick: () => navigate('/admin/users?action=create'), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] }), children: [isAuthError && (_jsxs(Alert, { variant: "warning", title: "Access Denied", children: [_jsx("p", { children: authError.status === 403
                             ? 'You do not have admin privileges to view this data. Please contact an administrator.'
-                            : 'Your session has expired. Please log in again.' }), _jsxs("p", { className: "text-xs text-gray-500 mt-2", children: ["Error: ", authError.message] })] })), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", children: [_jsx(StatsCard, { title: "Total Users", value: statsLoading ? '...' : (stats?.total_users ?? 0), icon: Users, iconColor: "text-blue-500", trend: stats?.new_users_7d
+                            : 'Your session has expired. Please log in again.' }), _jsxs("p", { className: "text-xs text-gray-500 mt-2", children: ["Error: ", authError.message] })] })), _jsxs("div", { className: `grid grid-cols-1 md:grid-cols-2 ${getGridCols()} gap-6`, children: [_jsx(StatsCard, { title: "Total Users", value: statsLoading ? '...' : (stats?.total_users ?? 0), icon: Users, iconColor: "text-blue-500", trend: stats?.new_users_7d
                             ? { value: `${stats.new_users_7d} new this week`, direction: 'up' }
                             : undefined }), _jsx(StatsCard, { title: "Active Sessions", value: statsLoading ? '...' : (stats?.active_sessions ?? 0), icon: Key, iconColor: "text-green-500", subtitle: "Currently logged in" }), !configLoading && authConfig?.two_factor_auth && (_jsx(StatsCard, { title: "2FA Adoption", value: statsLoading ? '...' : `${stats?.two_factor_adoption ?? 0}%`, icon: Shield, iconColor: "text-purple-500", trend: stats?.two_factor_adoption && stats.two_factor_adoption > 50
                             ? { value: 'Above target', direction: 'up' }
