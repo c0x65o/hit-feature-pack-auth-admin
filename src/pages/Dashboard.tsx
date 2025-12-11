@@ -64,9 +64,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     <Card>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-gray-100 mt-1">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+          <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">{subtitle}</p>}
           {trend && (
             <div className="flex items-center gap-2 mt-2">
               {trend.direction === 'up' ? (
@@ -127,7 +127,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               ? 'You do not have admin privileges to view this data. Please contact an administrator.'
               : 'Your session has expired. Please log in again.'}
           </p>
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
             Error: {authError.message}
           </p>
         </Alert>
@@ -226,7 +226,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               {auditData?.items.map((entry, i) => (
                 <div
                   key={entry.id || i}
-                  className="flex items-start gap-3 pb-4 border-b border-gray-800 last:border-0 last:pb-0"
+                  className="flex items-start gap-3 pb-4 border-b border-gray-200 dark:border-gray-800 last:border-0 last:pb-0"
                 >
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -234,11 +234,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       <Badge variant={getEventBadgeVariant(entry.event_type)}>
                         {entry.event_type.replace(/_/g, ' ')}
                       </Badge>
-                      <span className="text-sm text-gray-100 truncate">
+                      <span className="text-sm text-gray-700 dark:text-gray-100 truncate">
                         {entry.user_email}
                       </span>
                     </div>
-                    <div className="mt-1 text-sm text-gray-400 flex items-center gap-2">
+                    <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                       <span>{entry.ip_address}</span>
                       <span>•</span>
                       <span>{formatRelativeTime(entry.created_at)}</span>

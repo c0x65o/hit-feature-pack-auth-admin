@@ -180,7 +180,7 @@ export function Invites({ onNavigate }: InvitesProps) {
             />
 
             {data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages}
                 </p>

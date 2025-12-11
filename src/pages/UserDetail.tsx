@@ -301,7 +301,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-400">Email</span>
-              <span className="text-gray-100">{user.email}</span>
+              <span className="text-gray-900 dark:text-gray-100">{user.email}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Verified</span>
@@ -325,11 +325,11 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Created</span>
-              <span className="text-gray-100">{formatDateOrNever(user.created_at)}</span>
+              <span className="text-gray-900 dark:text-gray-100">{formatDateOrNever(user.created_at)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Last Login</span>
-              <span className="text-gray-100">{formatDateOrNever(user.last_login ?? null)}</span>
+              <span className="text-gray-900 dark:text-gray-100">{formatDateOrNever(user.last_login ?? null)}</span>
             </div>
           </div>
         </Card>
@@ -438,7 +438,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
       >
         <div className="space-y-4">
           <p className="text-gray-300">
-            Are you sure you want to delete <strong className="text-gray-100">{user.email}</strong>?
+            Are you sure you want to delete <strong className="text-gray-900 dark:text-gray-100">{user.email}</strong>?
           </p>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
@@ -552,7 +552,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter new password"
                 />
               </div>
@@ -564,7 +564,7 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Confirm new password"
                 />
               </div>

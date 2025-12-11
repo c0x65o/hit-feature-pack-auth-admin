@@ -260,7 +260,7 @@ export function Users({ onNavigate }: UsersProps) {
 
             {/* Pagination */}
             {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages} ({data.total} users)
                 </p>
@@ -341,7 +341,7 @@ export function Users({ onNavigate }: UsersProps) {
         <div className="space-y-4">
           <p className="text-gray-300">
             Are you sure you want to delete{' '}
-            <strong className="text-gray-100">{selectedUser?.email}</strong>?
+            <strong className="text-gray-900 dark:text-gray-100">{selectedUser?.email}</strong>?
           </p>
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

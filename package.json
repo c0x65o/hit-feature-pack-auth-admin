@@ -1,6 +1,6 @@
 {
   "name": "@hit/feature-pack-auth-admin",
-  "version": "2.0.37",
+  "version": "2.0.38",
   "description": "Admin dashboard feature pack for user management, sessions, and audit logs. Uses @hit/ui-kit for shell-agnostic UI.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

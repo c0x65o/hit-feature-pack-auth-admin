@@ -229,7 +229,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
             />
 
             {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-800">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
                 <p className="text-sm text-gray-400">
                   Page {data.page} of {data.total_pages}
                 </p>
@@ -269,11 +269,11 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-400">Time</label>
-                <p className="text-gray-100">{formatDateTime(selectedEntry.created_at)}</p>
+                <p className="text-gray-900 dark:text-gray-100">{formatDateTime(selectedEntry.created_at)}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-400">User</label>
-                <p className="text-gray-100">{selectedEntry.user_email}</p>
+                <p className="text-gray-900 dark:text-gray-100">{selectedEntry.user_email}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-400">Event</label>
@@ -283,7 +283,7 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-400">IP Address</label>
-                <p className="font-mono text-gray-100">{selectedEntry.ip_address}</p>
+                <p className="font-mono text-gray-900 dark:text-gray-100">{selectedEntry.ip_address}</p>
               </div>
             </div>
 
