@@ -13,15 +13,23 @@ import {
   Globe,
   Mail,
   CheckCircle,
+  Edit2,
+  Save,
+  X,
+  User,
+  Upload,
+  Camera,
+  Link2,
 } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import { formatDateTime } from '@hit/sdk';
 import {
   useUser,
-  useSessions,
+  useUserSessions,
   useUserMutations,
   useSessionMutations,
   useAuthAdminConfig,
+  useProfileFields,
 } from '../hooks/useAuthAdmin';
 
 interface UserDetailProps {
@@ -30,21 +38,26 @@ interface UserDetailProps {
 }
 
 export function UserDetail({ email, onNavigate }: UserDetailProps) {
-  const { Page, Card, Button, Badge, Table, Modal, Alert, Spinner, EmptyState, Select } = useUi();
+  const { Page, Card, Button, Badge, DataTable, Modal, Alert, Spinner, EmptyState, Select } = useUi();
   
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [rolesModalOpen, setRolesModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [newRole, setNewRole] = useState<string>('');
   const [availableRoles, setAvailableRoles] = useState<string[]>(['admin', 'user']);
+  const [profileFields, setProfileFields] = useState<Record<string, unknown>>({});
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [resetPasswordMethod, setResetPasswordMethod] = useState<'email' | 'direct'>('email');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetPasswordSuccess, setResetPasswordSuccess] = useState<string | null>(null);
   const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { user, loading, error, refresh } = useUser(email);
   const { config: authConfig } = useAuthAdminConfig();
+  const { data: profileFieldMetadata, loading: fieldsLoading } = useProfileFields();
+  const profileFieldsList = profileFieldMetadata || [];
   
   // Fetch available roles from features endpoint
   React.useEffect(() => {
@@ -61,13 +74,16 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     };
     fetchAvailableRoles();
   }, []);
-  const { data: sessionsData, refresh: refreshSessions } = useSessions({ search: email });
+  const { data: sessionsData, refresh: refreshSessions } = useUserSessions(email);
   const {
     deleteUser,
     resetPassword,
     resendVerification,
     verifyEmail,
     updateRoles,
+    updateUser,
+    uploadProfilePicture,
+    deleteProfilePicture,
     lockUser,
     unlockUser,
     loading: mutating,
@@ -180,19 +196,33 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     }
   };
 
-  const handleUpdateRoles = async () => {
-    if (!newRole) {
-      alert('Please select a role');
-      return;
-    }
+  const handleSave = async () => {
     try {
-      await updateRoles(email, newRole);
-      setRolesModalOpen(false);
+      // Update role if changed
+      const currentRole = user?.role || (user?.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
+      if (newRole && newRole !== currentRole) {
+        await updateRoles(email, newRole);
+      }
+      
+      // Update profile fields if changed
+      const hasChanges = JSON.stringify(profileFields) !== JSON.stringify(user?.profile_fields || {});
+      if (hasChanges) {
+        await updateUser(email, { profile_fields: profileFields });
+      }
+      
+      setIsEditing(false);
       refresh();
     } catch {
       // Error handled by hook
     }
   };
+
+  // Initialize profile fields when user data loads
+  React.useEffect(() => {
+    if (user?.profile_fields) {
+      setProfileFields(user.profile_fields);
+    }
+  }, [user?.profile_fields]);
 
   const handleRevokeSession = async (sessionId: string) => {
     if (confirm('Revoke this session?')) {
@@ -221,11 +251,57 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     return formatDateTime(dateStr);
   };
 
-  const openRolesModal = () => {
-    // Support both new single role and legacy roles array
+  const startEditing = () => {
     const currentRole = user?.role || (user?.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
     setNewRole(currentRole);
-    setRolesModalOpen(true);
+    setProfileFields(user?.profile_fields || {});
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    const currentRole = user?.role || (user?.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
+    setNewRole(currentRole);
+    setProfileFields(user?.profile_fields || {});
+  };
+
+  const handlePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingPicture(true);
+      await uploadProfilePicture(email, file);
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to upload profile picture');
+    } finally {
+      setUploadingPicture(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handlePictureDelete = async () => {
+    if (!confirm('Are you sure you want to delete this profile picture?')) {
+      return;
+    }
+
+    try {
+      setUploadingPicture(true);
+      await deleteProfilePicture(email);
+      refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete profile picture');
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   if (loading) {
@@ -268,41 +344,251 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             <ArrowLeft size={16} className="mr-2" />
             Back
           </Button>
-          {!user.email_verified && (
+          {isEditing ? (
             <>
-              <Button variant="secondary" onClick={handleVerifyEmail} disabled={mutating}>
-                <CheckCircle size={16} className="mr-2" />
-                Verify
+              <Button variant="primary" onClick={handleSave} disabled={mutating}>
+                <Save size={16} className="mr-2" />
+                Save
               </Button>
-              <Button variant="secondary" onClick={handleResendVerification} disabled={mutating}>
-                <Mail size={16} className="mr-2" />
-                Resend Verification
+              <Button variant="ghost" onClick={cancelEditing} disabled={mutating}>
+                <X size={16} className="mr-2" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={startEditing}>
+                <Edit2 size={16} className="mr-2" />
+                Edit
+              </Button>
+              {!user.email_verified && (
+                <>
+                  <Button variant="secondary" onClick={handleVerifyEmail} disabled={mutating}>
+                    <CheckCircle size={16} className="mr-2" />
+                    Verify
+                  </Button>
+                  <Button variant="secondary" onClick={handleResendVerification} disabled={mutating}>
+                    <Mail size={16} className="mr-2" />
+                    Resend Verification
+                  </Button>
+                </>
+              )}
+              <Button variant="secondary" onClick={handleResetPassword} disabled={mutating}>
+                <Key size={16} className="mr-2" />
+                Reset Password
+              </Button>
+              <Button variant="secondary" onClick={handleToggleLock} disabled={mutating}>
+                {user.locked ? <Unlock size={16} className="mr-2" /> : <Lock size={16} className="mr-2" />}
+                {user.locked ? 'Unlock' : 'Lock'}
+              </Button>
+              <Button variant="danger" onClick={() => setDeleteModalOpen(true)}>
+                <Trash2 size={16} className="mr-2" />
+                Delete
               </Button>
             </>
           )}
-          <Button variant="secondary" onClick={handleResetPassword} disabled={mutating}>
-            <Key size={16} className="mr-2" />
-            Reset Password
-          </Button>
-          <Button variant="secondary" onClick={handleToggleLock} disabled={mutating}>
-            {user.locked ? <Unlock size={16} className="mr-2" /> : <Lock size={16} className="mr-2" />}
-            {user.locked ? 'Unlock' : 'Lock'}
-          </Button>
-          <Button variant="danger" onClick={() => setDeleteModalOpen(true)}>
-            <Trash2 size={16} className="mr-2" />
-            Delete
-          </Button>
         </div>
       }
     >
-      {/* User Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Account Details">
+      {/* OAuth Account Alert */}
+      {user.oauth_providers && user.oauth_providers.length > 0 && (
+        <Alert variant="info" title="OAuth Account Linked">
+          <div className="flex items-center gap-2">
+            <Link2 size={16} />
+            <span>
+              This account is linked to{' '}
+              <strong>{user.oauth_providers.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}</strong>
+              {user.oauth_providers.length === 1 ? ' account' : ' accounts'}.
+            </span>
+          </div>
+        </Alert>
+      )}
+
+      {/* User Info - Consolidated */}
+      <Card title="User Details">
+        {isEditing ? (
           <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Email</span>
-              <span className="text-gray-900 dark:text-gray-100">{user.email}</span>
+            {/* Profile Fields - Editable */}
+            {profileFieldsList.length > 0 && profileFieldsList
+              .sort((a, b) => a.display_order - b.display_order)
+              .map((fieldMeta) => {
+                const rawFieldValue = fieldMeta.field_key === 'email' 
+                  ? (user.email || '')
+                  : (profileFields[fieldMeta.field_key]);
+                const fieldValue = typeof rawFieldValue === 'string' || typeof rawFieldValue === 'number' 
+                  ? String(rawFieldValue) 
+                  : '';
+                const isEmail = fieldMeta.field_key === 'email';
+                
+                return (
+                  <div key={fieldMeta.field_key}>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      {fieldMeta.field_label}
+                      {fieldMeta.required && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+                    {fieldMeta.field_type === 'int' ? (
+                      <input
+                        type="number"
+                        value={fieldValue || ''}
+                        onChange={(e) =>
+                          setProfileFields({
+                            ...profileFields,
+                            [fieldMeta.field_key]: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={fieldMeta.default_value || ''}
+                        disabled={isEmail}
+                      />
+                    ) : (
+                      <input
+                        type={isEmail ? 'email' : 'text'}
+                        value={fieldValue || ''}
+                        onChange={(e) => {
+                          if (!isEmail) {
+                            setProfileFields({
+                              ...profileFields,
+                              [fieldMeta.field_key]: e.target.value || undefined,
+                            });
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder={fieldMeta.default_value || ''}
+                        disabled={isEmail}
+                      />
+                    )}
+                    {isEmail && (
+                      <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                    )}
+                  </div>
+                );
+              })}
+            
+            {/* Role - Editable */}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Role</label>
+              <Select
+                value={newRole}
+                onChange={(value) => setNewRole(value)}
+                options={availableRoles.map((role) => ({
+                  value: role,
+                  label: role.charAt(0).toUpperCase() + role.slice(1),
+                }))}
+                placeholder="Select a role"
+              />
             </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Profile Picture */}
+            {authConfig?.profile_picture !== false && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Profile Picture</span>
+                <div className="flex items-center gap-3">
+                  {user.profile_picture_url ? (
+                    <div className="relative group">
+                      <img
+                        src={user.profile_picture_url}
+                        alt="Profile"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 dark:border-gray-700"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                      <User size={24} className="text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={triggerFileInput}
+                      disabled={uploadingPicture || mutating}
+                    >
+                      {user.profile_picture_url ? (
+                        <>
+                          <Camera size={14} className="mr-1" />
+                          Change
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={14} className="mr-1" />
+                          Upload
+                        </>
+                      )}
+                    </Button>
+                    {user.profile_picture_url && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handlePictureDelete}
+                        disabled={uploadingPicture || mutating}
+                      >
+                        <Trash2 size={14} className="mr-1 text-red-500" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePictureUpload}
+                  className="hidden"
+                />
+              </div>
+            )}
+            
+            {/* Profile Fields - View Mode */}
+            {profileFieldsList.length > 0 && profileFieldsList
+              .sort((a, b) => a.display_order - b.display_order)
+              .map((fieldMeta) => {
+                const value = fieldMeta.field_key === 'email' 
+                  ? (user.email || '')
+                  : (user.profile_fields?.[fieldMeta.field_key]);
+                return (
+                  <div key={fieldMeta.field_key} className="flex justify-between">
+                    <span className="text-gray-400">{fieldMeta.field_label}</span>
+                    <span className="text-gray-900 dark:text-gray-100">
+                      {value !== undefined && value !== null ? String(value) : '—'}
+                    </span>
+                  </div>
+                );
+              })}
+            
+            {/* OAuth Providers - View Mode */}
+            {user.oauth_providers && user.oauth_providers.length > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">OAuth Providers</span>
+                <div className="flex gap-2">
+                  {user.oauth_providers.map((provider) => (
+                    <Badge key={provider} variant="info">
+                      <Link2 size={12} className="mr-1" />
+                      {provider.charAt(0).toUpperCase() + provider.slice(1)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Role - View Mode */}
+            <div className="flex justify-between">
+              <span className="text-gray-400">Role</span>
+              {(() => {
+                const userRole = user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
+                return (
+                  <Badge variant={userRole === 'admin' ? 'info' : 'default'}>
+                    {userRole}
+                  </Badge>
+                );
+              })()}
+            </div>
+            
+            {/* Account Status Fields */}
             <div className="flex justify-between">
               <span className="text-gray-400">Verified</span>
               <Badge variant={user.email_verified ? 'success' : 'warning'}>
@@ -332,30 +618,8 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               <span className="text-gray-900 dark:text-gray-100">{formatDateOrNever(user.last_login ?? null)}</span>
             </div>
           </div>
-        </Card>
-
-        <Card
-          title="Role"
-          footer={
-            <Button variant="secondary" size="sm" onClick={openRolesModal}>
-              <Shield size={16} className="mr-2" />
-              Edit Role
-            </Button>
-          }
-        >
-          <div className="flex flex-wrap gap-2">
-            {(() => {
-              // Support both new single role and legacy roles array
-              const userRole = user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user';
-              return (
-                <Badge key={userRole} variant={userRole === 'admin' ? 'info' : 'default'}>
-                  {userRole}
-                </Badge>
-              );
-            })()}
-          </div>
-        </Card>
-      </div>
+        )}
+      </Card>
 
       {/* Sessions */}
       <Card
@@ -375,11 +639,12 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             description="This user has no active sessions"
           />
         ) : (
-          <Table
+          <DataTable
             columns={[
               {
                 key: 'ip_address',
                 label: 'IP Address',
+                sortable: true,
                 render: (value) => (
                   <div className="flex items-center gap-2">
                     <Globe size={16} className="text-gray-400" />
@@ -390,14 +655,15 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
               {
                 key: 'created_at',
                 label: 'Started',
+                sortable: true,
                 render: (value) => formatDateOrNever(value as string),
               },
               {
-                key: 'current',
+                key: 'status',
                 label: 'Status',
-                render: (value) => (
-                  <Badge variant={value ? 'success' : 'default'}>
-                    {value ? 'Current' : 'Active'}
+                render: () => (
+                  <Badge variant="success">
+                    Active
                   </Badge>
                 ),
               },
@@ -405,26 +671,29 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
                 key: 'actions',
                 label: '',
                 align: 'right' as const,
-                render: (_, row) => {
-                  if (row.current) return null;
-                  return (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRevokeSession(row.id as string)}
-                    >
-                      <Trash2 size={16} className="text-red-500" />
-                    </Button>
-                  );
-                },
+                sortable: false,
+                hideable: false,
+                render: (_, row) => (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRevokeSession(row.id as string)}
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                  </Button>
+                ),
               },
             ]}
             data={(sessionsData?.items || []).map((s) => ({
               id: s.id,
               ip_address: s.ip_address,
               created_at: s.created_at,
-              current: s.current,
             }))}
+            emptyMessage="No active sessions"
+            searchable
+            exportable
+            showColumnVisibility
+            pageSize={25}
           />
         )}
       </Card>
@@ -446,35 +715,6 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
             </Button>
             <Button variant="danger" onClick={handleDeleteUser} loading={mutating}>
               Delete User
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Roles Modal */}
-      <Modal
-        open={rolesModalOpen}
-        onClose={() => setRolesModalOpen(false)}
-        title="Edit Role"
-        description="Select the role for this user"
-      >
-        <div className="space-y-4">
-          <Select
-            label="Role"
-            value={newRole}
-            onChange={(value) => setNewRole(value)}
-            options={availableRoles.map((role) => ({
-              value: role,
-              label: role.charAt(0).toUpperCase() + role.slice(1),
-            }))}
-            placeholder="Select a role"
-          />
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setRolesModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleUpdateRoles} loading={mutating}>
-              Save Role
             </Button>
           </div>
         </div>

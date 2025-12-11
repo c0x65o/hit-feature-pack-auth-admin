@@ -1,6 +1,3 @@
-/**
- * Auth Admin API hooks
- */
 interface User {
     email: string;
     email_verified: boolean;
@@ -14,8 +11,10 @@ interface User {
     created_at: string;
     updated_at?: string;
     last_login?: string | null;
-    oauth_providers?: string[];
+    oauth_providers?: string[] | null;
     locked?: boolean;
+    profile_picture_url?: string | null;
+    profile_fields?: Record<string, unknown> | null;
 }
 interface Session {
     id: string;
@@ -97,6 +96,15 @@ export declare function useSessions(options?: UseQueryOptions): {
     error: Error | null;
     refresh: () => Promise<void>;
 };
+export declare function useUserSessions(email: string, options?: {
+    page?: number;
+    pageSize?: number;
+}): {
+    data: PaginatedResponse<Session> | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
 export declare function useAuditLog(options?: UseQueryOptions): {
     data: PaginatedResponse<AuditLogEntry> | null;
     loading: boolean;
@@ -123,6 +131,13 @@ export declare function useUserMutations(): {
     resendVerification: (email: string) => Promise<void>;
     verifyEmail: (email: string) => Promise<void>;
     updateRoles: (email: string, role: string) => Promise<void>;
+    updateUser: (email: string, updates: {
+        role?: string;
+        profile_fields?: Record<string, unknown>;
+        profile_picture_url?: string | null;
+    }) => Promise<void>;
+    uploadProfilePicture: (email: string, file: File) => Promise<string>;
+    deleteProfilePicture: (email: string) => Promise<void>;
     lockUser: (email: string) => Promise<void>;
     unlockUser: (email: string) => Promise<void>;
     loading: boolean;
@@ -160,6 +175,14 @@ interface AuthAdminConfig {
     device_fingerprinting: boolean;
     new_device_alerts: boolean;
     lockout_notify_user: boolean;
+    profile_picture?: boolean;
+    additional_profile_fields?: Array<{
+        field_key: string;
+        field_label: string;
+        field_type: string;
+        required?: boolean;
+        display_order?: number;
+    }>;
 }
 /**
  * Hook to get auth admin config.
@@ -169,11 +192,61 @@ interface AuthAdminConfig {
  *
  * This hook reads config synchronously from the window global,
  * avoiding any loading states or UI flicker.
+ *
+ * Uses useEffect to update config when it becomes available (handles SSR/hydration timing).
  */
 export declare function useAuthAdminConfig(): {
     config: AuthAdminConfig;
     loading: boolean;
     error: null;
+};
+export interface ProfileFieldMetadata {
+    id: string;
+    field_key: string;
+    field_label: string;
+    field_type: 'string' | 'int';
+    required: boolean;
+    default_value: string | null;
+    validation_rules: Record<string, unknown> | null;
+    display_order: number;
+    created_at: string;
+    updated_at: string;
+}
+export interface ProfileFieldMetadataCreate {
+    field_key: string;
+    field_label: string;
+    field_type: 'string' | 'int';
+    required?: boolean;
+    default_value?: string | null;
+    validation_rules?: Record<string, unknown> | null;
+    display_order?: number;
+}
+export interface ProfileFieldMetadataUpdate {
+    field_label?: string;
+    field_type?: 'string' | 'int';
+    required?: boolean;
+    default_value?: string | null;
+    validation_rules?: Record<string, unknown> | null;
+    display_order?: number;
+}
+/**
+ * Hook to fetch profile fields metadata
+ */
+export declare function useProfileFields(): {
+    data: ProfileFieldMetadata[] | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+/**
+ * Hook for profile fields mutations
+ */
+export declare function useProfileFieldMutations(): {
+    createField: (field: ProfileFieldMetadataCreate) => Promise<any>;
+    updateField: (fieldKey: string, field: ProfileFieldMetadataUpdate) => Promise<any>;
+    deleteField: (fieldKey: string) => Promise<void>;
+    loading: boolean;
+    error: Error | null;
 };
 export { AuthAdminError };
 export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };

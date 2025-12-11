@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Download, Eye } from 'lucide-react';
+import { RefreshCw, Eye } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import { formatDateTime } from '@hit/sdk';
 import { useAuditLog, useAuthAdminConfig, type AuditLogEntry } from '../hooks/useAuthAdmin';
@@ -11,16 +11,14 @@ interface AuditLogProps {
 }
 
 export function AuditLog({ onNavigate }: AuditLogProps) {
-  const { Page, Card, Button, Badge, Table, Modal, Input, Alert, Spinner } = useUi();
+  const { Page, Card, Button, Badge, DataTable, Modal, Input, Alert, Spinner } = useUi();
   
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<AuditLogEntry | null>(null);
 
   const { data, loading, error, refresh } = useAuditLog({
     page,
     pageSize: 50,
-    search,
   });
 
   const { config: adminConfig, loading: configLoading } = useAuthAdminConfig();
@@ -73,27 +71,6 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
     return reasonMap[reason] || reason.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
-  const handleExport = () => {
-    if (!data?.items) return;
-    
-    const headers = ['Time', 'User', 'Event', 'IP Address', 'User Agent'];
-    const rows = data.items.map((entry) => [
-      entry.created_at,
-      entry.user_email,
-      entry.event_type,
-      entry.ip_address,
-      entry.user_agent || '',
-    ]);
-    
-    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   // Show loading while checking config
   if (configLoading) {
@@ -116,30 +93,12 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
       title="Audit Log"
       description="Security events and user activity"
       actions={
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={handleExport} disabled={!data?.items?.length}>
-            <Download size={16} className="mr-2" />
-            Export CSV
-          </Button>
-          <Button variant="secondary" onClick={() => refresh()}>
-            <RefreshCw size={16} className="mr-2" />
-            Refresh
-          </Button>
-        </div>
+        <Button variant="secondary" onClick={() => refresh()}>
+          <RefreshCw size={16} className="mr-2" />
+          Refresh
+        </Button>
       }
     >
-      {/* Search */}
-      <Card>
-        <div className="max-w-md">
-          <Input
-            label="Search Audit Log"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by email, event, or IP..."
-          />
-        </div>
-      </Card>
-
       {error && (
         <Alert variant="error" title="Error loading audit log">
           {error.message}
@@ -147,114 +106,91 @@ export function AuditLog({ onNavigate }: AuditLogProps) {
       )}
 
       <Card>
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        ) : (
-          <>
-            <Table
-              columns={[
-                {
-                  key: 'created_at',
-                  label: 'Time',
-                  render: (value) => <span className="text-sm">{formatDateTime(value as string)}</span>,
-                },
-                {
-                  key: 'user_email',
-                  label: 'User',
-                  render: (value) => (
-                    <button
-                      className="text-blue-500 hover:text-blue-400"
-                      onClick={() => navigate(`/admin/users/${encodeURIComponent(value as string)}`)}
-                    >
-                      {value as string}
-                    </button>
-                  ),
-                },
-                {
-                  key: 'event_type',
-                  label: 'Event',
-                  render: (value, row) => {
-                    const eventType = value as string;
-                    const metadata = (row as any).metadata || (row as any).details;
-                    const failureReason = getFailureReason(eventType, metadata);
-                    
-                    return (
-                      <div className="flex flex-col gap-1">
-                        <Badge variant={getEventBadgeVariant(eventType)}>
-                          {formatEventType(eventType)}
-                        </Badge>
-                        {failureReason && (
-                          <span className="text-xs text-gray-400 italic">
-                            {failureReason}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  },
-                },
-                {
-                  key: 'ip_address',
-                  label: 'IP Address',
-                  render: (value) => <span className="font-mono text-sm">{value as string}</span>,
-                },
-                {
-                  key: 'actions',
-                  label: '',
-                  align: 'right' as const,
-                  render: (_, row) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedEntry(row as unknown as AuditLogEntry)}
-                    >
-                      <Eye size={16} className="mr-1" />
-                      Details
-                    </Button>
-                  ),
-                },
-              ]}
-              data={(data?.items || []).map((entry) => ({
-                id: entry.id,
-                created_at: entry.created_at,
-                user_email: entry.user_email,
-                event_type: entry.event_type,
-                ip_address: entry.ip_address,
-                user_agent: entry.user_agent,
-                details: entry.details,
-                metadata: entry.metadata || entry.details,
-              }))}
-              emptyMessage="No audit log entries found"
-            />
-
-            {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
-                <p className="text-sm text-gray-400">
-                  Page {data.page} of {data.total_pages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={page >= data.total_pages}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        <DataTable
+          columns={[
+            {
+              key: 'created_at',
+              label: 'Time',
+              sortable: true,
+              render: (value) => <span className="text-sm">{formatDateTime(value as string)}</span>,
+            },
+            {
+              key: 'user_email',
+              label: 'User',
+              sortable: true,
+              render: (value) => (
+                <button
+                  className="text-blue-500 hover:text-blue-400"
+                  onClick={() => navigate(`/admin/users/${encodeURIComponent(value as string)}`)}
+                >
+                  {value as string}
+                </button>
+              ),
+            },
+            {
+              key: 'event_type',
+              label: 'Event',
+              sortable: true,
+              render: (value, row) => {
+                const eventType = value as string;
+                const metadata = (row as any).metadata || (row as any).details;
+                const failureReason = getFailureReason(eventType, metadata);
+                
+                return (
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={getEventBadgeVariant(eventType)}>
+                      {formatEventType(eventType)}
+                    </Badge>
+                    {failureReason && (
+                      <span className="text-xs text-gray-400 italic">
+                        {failureReason}
+                      </span>
+                    )}
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'ip_address',
+              label: 'IP Address',
+              sortable: true,
+              render: (value) => <span className="font-mono text-sm">{value as string}</span>,
+            },
+            {
+              key: 'actions',
+              label: '',
+              align: 'right' as const,
+              sortable: false,
+              hideable: false,
+              render: (_, row) => (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedEntry(row as unknown as AuditLogEntry)}
+                >
+                  <Eye size={16} className="mr-1" />
+                  Details
+                </Button>
+              ),
+            },
+          ]}
+          data={(data?.items || []).map((entry) => ({
+            id: entry.id,
+            created_at: entry.created_at,
+            user_email: entry.user_email,
+            event_type: entry.event_type,
+            ip_address: entry.ip_address,
+            user_agent: entry.user_agent,
+            details: entry.details,
+            metadata: entry.metadata || entry.details,
+          }))}
+          emptyMessage="No audit log entries found"
+          loading={loading}
+          searchable
+          exportable
+          showColumnVisibility
+          pageSize={50}
+        />
       </Card>
 
       {/* Entry Details Modal */}

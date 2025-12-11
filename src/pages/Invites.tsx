@@ -11,7 +11,7 @@ interface InvitesProps {
 }
 
 export function Invites({ onNavigate }: InvitesProps) {
-  const { Page, Card, Button, Badge, Table, Modal, Input, Select, Alert, Spinner, EmptyState } = useUi();
+  const { Page, Card, Button, Badge, DataTable, Modal, Input, Select, Alert, Spinner, EmptyState } = useUi();
   
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -101,110 +101,91 @@ export function Invites({ onNavigate }: InvitesProps) {
             }
           />
         ) : (
-          <>
-            <Table
-              columns={[
-                {
-                  key: 'email',
-                  label: 'Email',
-                  render: (value) => <span className="font-medium">{value as string}</span>,
-                },
-                {
-                  key: 'roles',
-                  label: 'Roles',
-                  render: (value) => (
-                    <div className="flex gap-1">
-                      {(value as string[])?.map((role) => (
-                        <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
-                          {role}
-                        </Badge>
-                      ))}
-                    </div>
-                  ),
-                },
-                {
-                  key: 'status',
-                  label: 'Status',
-                  render: (_, row) => {
-                    const expired = isExpired(row.expires_at as string);
-                    const accepted = !!row.accepted_at;
-                    return (
-                      <Badge variant={accepted ? 'success' : expired ? 'error' : 'warning'}>
-                        {accepted ? 'Accepted' : expired ? 'Expired' : 'Pending'}
+          <DataTable
+            columns={[
+              {
+                key: 'email',
+                label: 'Email',
+                sortable: true,
+                render: (value) => <span className="font-medium">{value as string}</span>,
+              },
+              {
+                key: 'roles',
+                label: 'Roles',
+                render: (value) => (
+                  <div className="flex gap-1">
+                    {(value as string[])?.map((role) => (
+                      <Badge key={role} variant={role === 'admin' ? 'info' : 'default'}>
+                        {role}
                       </Badge>
-                    );
-                  },
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                render: (_, row) => {
+                  const expired = isExpired(row.expires_at as string);
+                  const accepted = !!row.accepted_at;
+                  return (
+                    <Badge variant={accepted ? 'success' : expired ? 'error' : 'warning'}>
+                      {accepted ? 'Accepted' : expired ? 'Expired' : 'Pending'}
+                    </Badge>
+                  );
                 },
-                {
-                  key: 'expires_at',
-                  label: 'Expires',
-                  render: (value) => formatDateShort(value as string),
+              },
+              {
+                key: 'expires_at',
+                label: 'Expires',
+                sortable: true,
+                render: (value) => formatDateShort(value as string),
+              },
+              {
+                key: 'actions',
+                label: '',
+                align: 'right' as const,
+                sortable: false,
+                hideable: false,
+                render: (_, row) => {
+                  if (row.accepted_at) return null;
+                  return (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleResendInvite(row.id as string)}
+                        disabled={mutating}
+                      >
+                        <Send size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRevokeInvite(row.id as string)}
+                        disabled={mutating}
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                      </Button>
+                    </div>
+                  );
                 },
-                {
-                  key: 'actions',
-                  label: '',
-                  align: 'right' as const,
-                  render: (_, row) => {
-                    if (row.accepted_at) return null;
-                    return (
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleResendInvite(row.id as string)}
-                          disabled={mutating}
-                        >
-                          <Send size={16} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRevokeInvite(row.id as string)}
-                          disabled={mutating}
-                        >
-                          <Trash2 size={16} className="text-red-500" />
-                        </Button>
-                      </div>
-                    );
-                  },
-                },
-              ]}
-              data={(data?.items || []).map((invite) => ({
-                id: invite.id,
-                email: invite.email,
-                roles: invite.roles,
-                expires_at: invite.expires_at,
-                accepted_at: invite.accepted_at,
-              }))}
-              emptyMessage="No invitations found"
-            />
-
-            {data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
-                <p className="text-sm text-gray-400">
-                  Page {data.page} of {data.total_pages}
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    disabled={page >= data.total_pages}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
+              },
+            ]}
+            data={(data?.items || []).map((invite) => ({
+              id: invite.id,
+              email: invite.email,
+              roles: invite.roles,
+              expires_at: invite.expires_at,
+              accepted_at: invite.accepted_at,
+            }))}
+            emptyMessage="No invitations found"
+            loading={loading}
+            searchable
+            exportable
+            showColumnVisibility
+            pageSize={25}
+          />
         )}
       </Card>
 

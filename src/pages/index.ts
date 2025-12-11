@@ -2,6 +2,8 @@
  * Auth Admin Pages
  * 
  * Export all page components for the auth-admin feature pack.
+ * Using direct exports for optimal tree-shaking and code splitting.
+ * Each component is only bundled when actually imported/used.
  */
 
 export { Dashboard, default as DashboardPage } from './Dashboard';

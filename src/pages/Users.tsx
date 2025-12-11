@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, Key, Trash2, UserPlus, Lock, Unlock } from 'lucide-react';
+import { Trash2, UserPlus, Lock } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import { formatDate } from '@hit/sdk';
-import { useUsers, useUserMutations, useAuthAdminConfig, type User } from '../hooks/useAuthAdmin';
+import { useUsers, useUserMutations, useAuthAdminConfig, useProfileFields, type User } from '../hooks/useAuthAdmin';
 
 interface UsersProps {
   onNavigate?: (path: string) => void;
 }
 
 export function Users({ onNavigate }: UsersProps) {
-  const { Page, Card, Button, Badge, Table, Modal, Input, Alert, Spinner } = useUi();
+  const { Page, Card, Button, Badge, DataTable, Modal, Input, Alert, Spinner } = useUi();
   
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -31,8 +31,9 @@ export function Users({ onNavigate }: UsersProps) {
     sortOrder: 'desc',
   });
 
-  const { createUser, deleteUser, resetPassword, lockUser, unlockUser, loading: mutating } = useUserMutations();
+  const { createUser, deleteUser, loading: mutating } = useUserMutations();
   const { config: adminConfig } = useAuthAdminConfig();
+  const { data: profileFieldMetadata } = useProfileFields();
 
   const navigate = (path: string) => {
     if (onNavigate) {
@@ -66,29 +67,6 @@ export function Users({ onNavigate }: UsersProps) {
     }
   };
 
-  const handleResetPassword = async (email: string) => {
-    if (confirm(`Send password reset email to ${email}?`)) {
-      try {
-        await resetPassword(email);
-        alert('Password reset email sent!');
-      } catch {
-        // Error handled by hook
-      }
-    }
-  };
-
-  const handleToggleLock = async (user: User) => {
-    const action = user.locked ? unlockUser : lockUser;
-    const actionName = user.locked ? 'unlock' : 'lock';
-    if (confirm(`Are you sure you want to ${actionName} ${user.email}?`)) {
-      try {
-        await action(user.email);
-        refresh();
-      } catch {
-        // Error handled by hook
-      }
-    }
-  };
 
   const formatDateOrNever = (dateStr: string | null | undefined) => {
     if (!dateStr) return 'Never';
@@ -108,18 +86,6 @@ export function Users({ onNavigate }: UsersProps) {
         ) : null
       }
     >
-      {/* Search */}
-      <Card>
-        <div className="max-w-md">
-          <Input
-            label="Search Users"
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by email..."
-          />
-        </div>
-      </Card>
-
       {/* Error */}
       {error && (
         <Alert variant="error" title="Error loading users">
@@ -129,24 +95,38 @@ export function Users({ onNavigate }: UsersProps) {
 
       {/* Users Table */}
       <Card>
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        ) : (
-          <>
-            <Table
-              columns={[
-                {
-                  key: 'email',
-                  label: 'Email',
-                  render: (_, row) => (
+        <DataTable
+          columns={[
+            {
+              key: 'email',
+              label: 'Email',
+              sortable: true,
+              render: (_, row) => (
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{String(row.email)}</span>
                       {row.locked ? <Lock size={14} className="text-red-500" /> : null}
                     </div>
                   ),
                 },
+                // Add profile fields columns (first 2 fields)
+                ...(profileFieldMetadata && profileFieldMetadata.length > 0
+                  ? profileFieldMetadata
+                      .filter((field: any) => field.field_key !== 'email') // Exclude email as it's already shown
+                      .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
+                      .slice(0, 2) // Show first 2 additional fields
+                      .map((field: any) => ({
+                        key: `profile_fields.${field.field_key}`,
+                        label: field.field_label,
+                        render: (_: unknown, row: any) => {
+                          const value = row.profile_fields?.[field.field_key];
+                          return (
+                            <span className="text-gray-900 dark:text-gray-100">
+                              {value !== undefined && value !== null ? String(value) : '—'}
+                            </span>
+                          );
+                        },
+                      }))
+                  : []),
                 {
                   key: 'email_verified',
                   label: 'Verified',
@@ -173,12 +153,8 @@ export function Users({ onNavigate }: UsersProps) {
                   key: 'role',
                   label: 'Role',
                   render: (value) => {
-                    // Support both new single role and legacy roles array
-                    const userRole = (value as { role?: string; roles?: string[] })?.role 
-                      || ((value as { role?: string; roles?: string[] })?.roles && (value as { role?: string; roles?: string[] }).roles!.length > 0 
-                        ? (value as { role?: string; roles?: string[] }).roles![0] 
-                        : 'user') 
-                      || 'user';
+                    // Value is already a string from the API (user.get_role())
+                    const userRole = (typeof value === 'string' ? value : 'user') || 'user';
                     return (
                       <Badge variant={userRole === 'admin' ? 'info' : 'default'}>
                         {userRole}
@@ -187,46 +163,40 @@ export function Users({ onNavigate }: UsersProps) {
                   },
                 },
                 {
-                  key: 'created_at',
-                  label: 'Created',
-                  render: (value) => formatDateOrNever(value as string | null),
-                },
-                {
-                  key: 'last_login',
-                  label: 'Last Login',
-                  render: (value) => formatDateOrNever(value as string | null),
-                },
-                {
-                  key: 'actions',
-                  label: '',
-                  align: 'right' as const,
+                  key: 'status',
+                  label: 'Status',
                   render: (_, row) => {
+                    const user = row as unknown as User;
+                    const isLocked = user.locked || false;
+                    return (
+                      <Badge variant={isLocked ? 'warning' : 'success'}>
+                        {isLocked ? 'Locked' : 'Active'}
+                      </Badge>
+                    );
+                  },
+                },
+            {
+              key: 'created_at',
+              label: 'Created',
+              sortable: true,
+              render: (value) => formatDateOrNever(value as string | null),
+            },
+            {
+              key: 'last_login',
+              label: 'Last Login',
+              sortable: true,
+              render: (value) => formatDateOrNever(value as string | null),
+            },
+            {
+              key: 'actions',
+              label: '',
+              align: 'right' as const,
+              sortable: false,
+              hideable: false,
+              render: (_, row) => {
                     const user = row as unknown as User;
                     return (
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/admin/users/${encodeURIComponent(user.email)}`)}
-                        >
-                          <Eye size={16} />
-                        </Button>
-                        {adminConfig?.password_reset !== false && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResetPassword(user.email)}
-                          >
-                            <Key size={16} />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleLock(user)}
-                        >
-                          {user.locked ? <Unlock size={16} /> : <Lock size={16} />}
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -248,44 +218,25 @@ export function Users({ onNavigate }: UsersProps) {
               ...(adminConfig?.two_factor_auth !== false
                 ? { two_factor_enabled: user.two_factor_enabled }
                 : {}),
-              role: user.role || (user.roles && user.roles.length > 0 ? user.roles[0] : 'user') || 'user',
+              role: user.role || 'user', // API already returns correct role via user.get_role()
               roles: user.roles, // Keep for backwards compatibility
               created_at: user.created_at,
               last_login: user.last_login,
               locked: user.locked,
-              }))}
-              onRowClick={(row) => navigate(`/admin/users/${encodeURIComponent(row.email as string)}`)}
-              emptyMessage="No users found"
-            />
-
-            {/* Pagination */}
-            {data && data.total_pages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
-                <p className="text-sm text-gray-400">
-                  Page {data.page} of {data.total_pages} ({data.total} users)
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    disabled={page >= data.total_pages}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+              profile_fields: user.profile_fields || {}, // Include profile_fields for table rendering
+          }))}
+          onRowClick={(row) => navigate(`/admin/users/${encodeURIComponent(row.email as string)}`)}
+          emptyMessage="No users found"
+          loading={loading}
+          searchable
+          exportable
+          showColumnVisibility
+          pageSize={25}
+          manualPagination={true}
+          total={data?.total}
+          page={page}
+          onPageChange={setPage}
+        />
       </Card>
 
       {/* Create User Modal */}
