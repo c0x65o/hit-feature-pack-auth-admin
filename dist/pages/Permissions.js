@@ -182,7 +182,11 @@ export function Permissions({ onNavigate }) {
             else {
                 await setUserPageOverride(email, pagePath, false);
             }
-            refreshUsersWithOverrides();
+            // Refresh both the user's overrides and the users-with-overrides list
+            await Promise.all([
+                refreshUserOverrides(),
+                refreshUsersWithOverrides(),
+            ]);
         }
         catch (error) {
             console.error('Failed to update user override:', error);
