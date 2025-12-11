@@ -100,14 +100,6 @@ config:
       type: boolean
       default: true
       description: Show OAuth provider connections
-    allow_user_creation:
-      type: boolean
-      default: true
-      description: Allow admins to create new users
-    allow_user_deletion:
-      type: boolean
-      default: true
-      description: Allow admins to delete users
     allow_password_reset:
       type: boolean
       default: true
