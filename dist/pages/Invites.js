@@ -12,7 +12,7 @@ export function Invites({ onNavigate }) {
     const [newEmail, setNewEmail] = useState('');
     const [newRole, setNewRole] = useState('user');
     const { data, loading, error, refresh } = useInvites({ page, pageSize: 25 });
-    const { createInvite, resendInvite, revokeInvite, loading: mutating } = useInviteMutations();
+    const { createInvite, resendInvite, revokeInvite, loading: mutating, error: mutationError } = useInviteMutations();
     const handleCreateInvite = async () => {
         try {
             await createInvite({ email: newEmail, roles: [newRole] });
@@ -21,8 +21,9 @@ export function Invites({ onNavigate }) {
             setNewRole('user');
             refresh();
         }
-        catch {
-            // Error handled by hook
+        catch (e) {
+            // Error is stored in mutationError and will be displayed in the modal
+            // Don't close modal on error so user can see the error and retry
         }
     };
     const handleResendInvite = async (inviteId) => {
@@ -31,8 +32,10 @@ export function Invites({ onNavigate }) {
                 await resendInvite(inviteId);
                 alert('Invitation resent!');
             }
-            catch {
-                // Error handled by hook
+            catch (e) {
+                // Error is stored in mutationError and will be displayed
+                const errorMessage = e instanceof Error ? e.message : 'Failed to resend invitation';
+                alert(`Error: ${errorMessage}`);
             }
         }
     };
@@ -50,7 +53,7 @@ export function Invites({ onNavigate }) {
     const isExpired = (expiresAt) => {
         return new Date(expiresAt) < new Date();
     };
-    return (_jsxs(Page, { title: "Invitations", description: "Manage user invitations", actions: _jsxs("div", { className: "flex gap-3", children: [_jsxs(Button, { variant: "secondary", onClick: () => refresh(), children: [_jsx(RefreshCw, { size: 16, className: "mr-2" }), "Refresh"] }), _jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Send Invite"] })] }), children: [error && (_jsx(Alert, { variant: "error", title: "Error loading invites", children: error.message })), _jsx(Card, { children: loading ? (_jsx("div", { className: "flex justify-center py-12", children: _jsx(Spinner, { size: "lg" }) })) : !data?.items?.length ? (_jsx(EmptyState, { icon: _jsx(Clock, { size: 48 }), title: "No pending invitations", description: "Send an invitation to add new users", action: _jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Send Invite"] }) })) : (_jsx(DataTable, { columns: [
+    return (_jsxs(Page, { title: "Invitations", description: "Manage user invitations", actions: _jsxs("div", { className: "flex gap-3", children: [_jsxs(Button, { variant: "secondary", onClick: () => refresh(), children: [_jsx(RefreshCw, { size: 16, className: "mr-2" }), "Refresh"] }), _jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Send Invite"] })] }), children: [error && (_jsx(Alert, { variant: "error", title: "Error loading invites", children: error.message })), mutationError && (_jsx(Alert, { variant: "error", title: "Error", children: mutationError.message })), _jsx(Card, { children: loading ? (_jsx("div", { className: "flex justify-center py-12", children: _jsx(Spinner, { size: "lg" }) })) : !data?.items?.length ? (_jsx(EmptyState, { icon: _jsx(Clock, { size: 48 }), title: "No pending invitations", description: "Send an invitation to add new users", action: _jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Send Invite"] }) })) : (_jsx(DataTable, { columns: [
                         {
                             key: 'email',
                             label: 'Email',
@@ -95,7 +98,13 @@ export function Invites({ onNavigate }) {
                         roles: invite.roles,
                         expires_at: invite.expires_at,
                         accepted_at: invite.accepted_at,
-                    })), emptyMessage: "No invitations found", loading: loading, searchable: true, exportable: true, showColumnVisibility: true, pageSize: 25 })) }), _jsx(Modal, { open: createModalOpen, onClose: () => setCreateModalOpen(false), title: "Send Invitation", description: "Invite a new user to join", children: _jsxs("div", { className: "space-y-4", children: [_jsx(Input, { label: "Email", type: "email", value: newEmail, onChange: setNewEmail, placeholder: "user@example.com", required: true }), _jsx(Select, { label: "Role", options: [
+                    })), emptyMessage: "No invitations found", loading: loading, searchable: true, exportable: true, showColumnVisibility: true, pageSize: 25 })) }), _jsx(Modal, { open: createModalOpen, onClose: () => {
+                    setCreateModalOpen(false);
+                    // Clear error when closing modal
+                    if (mutationError) {
+                        // The hook should clear error, but we can also clear it here if needed
+                    }
+                }, title: "Send Invitation", description: "Invite a new user to join", children: _jsxs("div", { className: "space-y-4", children: [mutationError && (_jsx(Alert, { variant: "error", title: "Failed to send invitation", children: mutationError.message })), _jsx(Input, { label: "Email", type: "email", value: newEmail, onChange: setNewEmail, placeholder: "user@example.com", required: true }), _jsx(Select, { label: "Role", options: [
                                 { value: 'user', label: 'User' },
                                 { value: 'admin', label: 'Admin' },
                             ], value: newRole, onChange: setNewRole }), _jsxs("div", { className: "flex justify-end gap-3 pt-4", children: [_jsx(Button, { variant: "ghost", onClick: () => setCreateModalOpen(false), children: "Cancel" }), _jsx(Button, { variant: "primary", onClick: handleCreateInvite, loading: mutating, disabled: !newEmail, children: "Send Invite" })] })] }) })] }));

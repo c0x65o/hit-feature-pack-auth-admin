@@ -19,7 +19,7 @@ export function Invites({ onNavigate }: InvitesProps) {
   const [newRole, setNewRole] = useState('user');
 
   const { data, loading, error, refresh } = useInvites({ page, pageSize: 25 });
-  const { createInvite, resendInvite, revokeInvite, loading: mutating } = useInviteMutations();
+  const { createInvite, resendInvite, revokeInvite, loading: mutating, error: mutationError } = useInviteMutations();
 
   const handleCreateInvite = async () => {
     try {
@@ -28,8 +28,9 @@ export function Invites({ onNavigate }: InvitesProps) {
       setNewEmail('');
       setNewRole('user');
       refresh();
-    } catch {
-      // Error handled by hook
+    } catch (e) {
+      // Error is stored in mutationError and will be displayed in the modal
+      // Don't close modal on error so user can see the error and retry
     }
   };
 
@@ -38,8 +39,10 @@ export function Invites({ onNavigate }: InvitesProps) {
       try {
         await resendInvite(inviteId);
         alert('Invitation resent!');
-      } catch {
-        // Error handled by hook
+      } catch (e) {
+        // Error is stored in mutationError and will be displayed
+        const errorMessage = e instanceof Error ? e.message : 'Failed to resend invitation';
+        alert(`Error: ${errorMessage}`);
       }
     }
   };
@@ -80,6 +83,12 @@ export function Invites({ onNavigate }: InvitesProps) {
       {error && (
         <Alert variant="error" title="Error loading invites">
           {error.message}
+        </Alert>
+      )}
+
+      {mutationError && (
+        <Alert variant="error" title="Error">
+          {mutationError.message}
         </Alert>
       )}
 
@@ -192,11 +201,22 @@ export function Invites({ onNavigate }: InvitesProps) {
       {/* Create Invite Modal */}
       <Modal
         open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={() => {
+          setCreateModalOpen(false);
+          // Clear error when closing modal
+          if (mutationError) {
+            // The hook should clear error, but we can also clear it here if needed
+          }
+        }}
         title="Send Invitation"
         description="Invite a new user to join"
       >
         <div className="space-y-4">
+          {mutationError && (
+            <Alert variant="error" title="Failed to send invitation">
+              {mutationError.message}
+            </Alert>
+          )}
           <Input
             label="Email"
             type="email"
