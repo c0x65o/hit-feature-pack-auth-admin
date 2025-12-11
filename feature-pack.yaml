@@ -47,6 +47,9 @@ nav:
       - label: Users
         path: /admin/users
         icon: Users
+      - label: Permissions
+        path: /admin/permissions
+        icon: Shield
       - label: Sessions
         path: /admin/sessions
         icon: Key
@@ -58,9 +61,6 @@ nav:
         path: /admin/invites
         icon: Mail
         featureFlag: auth.allow_invited
-      - label: Permissions
-        path: /admin/permissions
-        icon: Shield
 
 # Notification types this pack can emit
 notifications:

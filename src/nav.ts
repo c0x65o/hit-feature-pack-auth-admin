@@ -21,6 +21,7 @@ export const nav: NavItem[] = [
     children: [
       { label: 'Dashboard', path: '/admin', icon: 'layout-dashboard' },
       { label: 'Users', path: '/admin/users', icon: 'users' },
+      { label: 'Permissions', path: '/admin/permissions', icon: 'shield' },
       { label: 'Sessions', path: '/admin/sessions', icon: 'key' },
       { label: 'Audit Log', path: '/admin/audit-log', icon: 'file-text' },
       { label: 'Invites', path: '/admin/invites', icon: 'mail' },

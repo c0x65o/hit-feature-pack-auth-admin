@@ -272,11 +272,19 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                         <h3 className="text-lg font-semibold mb-2">
                           Page Permissions for Role: <Badge>{selectedRole}</Badge>
                         </h3>
-                        <div className="mb-4">
-                          <Alert variant="info">
-                            All pages are enabled by default. Toggle off to restrict access for this role.
-                          </Alert>
-                        </div>
+                        {selectedRole.toLowerCase() === 'admin' ? (
+                          <div className="mb-4">
+                            <Alert variant="warning">
+                              Admin role permissions cannot be modified. Admin role always has full access to all pages.
+                            </Alert>
+                          </div>
+                        ) : (
+                          <div className="mb-4">
+                            <Alert variant="info">
+                              All pages are enabled by default. Toggle off to restrict access for this role.
+                            </Alert>
+                          </div>
+                        )}
 
                         {rolePermissionsLoading ? (
                           <Spinner />
