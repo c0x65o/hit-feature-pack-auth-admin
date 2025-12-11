@@ -105,16 +105,77 @@ export function Permissions({ onNavigate }: PermissionsProps) {
     loading: mutating,
   } = usePagePermissionsMutations();
 
-  // Get all unique roles from users
-  const roles = useMemo(() => {
-    if (!usersData?.items) return [];
-    const roleSet = new Set<string>();
-    usersData.items.forEach((user) => {
-      const role = user.role || 'user';
-      roleSet.add(role);
-    });
-    return Array.from(roleSet).sort();
+  // Get available roles from auth module configuration
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+  
+  React.useEffect(() => {
+    // Fetch available roles from auth module /features endpoint
+    const fetchRoles = async () => {
+      try {
+        const authUrl = typeof window !== 'undefined' 
+          ? (window as any).NEXT_PUBLIC_HIT_AUTH_URL || '/api/proxy/auth'
+          : '/api/proxy/auth';
+        const token = typeof window !== 'undefined' ? localStorage.getItem('hit_token') : null;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`${authUrl}/features`, { headers });
+        if (response.ok) {
+          const data = await response.json();
+          const roles = data.features?.available_roles || ['admin', 'user'];
+          setAvailableRoles(roles);
+        } else {
+          // Fallback: extract roles from users if API fails
+          if (usersData?.items) {
+            const roleSet = new Set<string>();
+            usersData.items.forEach((user) => {
+              const role = user.role || 'user';
+              roleSet.add(role);
+            });
+            setAvailableRoles(Array.from(roleSet).sort());
+          } else {
+            setAvailableRoles(['admin', 'user']);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch available roles, using fallback:', error);
+        // Fallback: extract roles from users
+        if (usersData?.items) {
+          const roleSet = new Set<string>();
+          usersData.items.forEach((user) => {
+            const role = user.role || 'user';
+            roleSet.add(role);
+          });
+          setAvailableRoles(Array.from(roleSet).sort());
+        } else {
+          setAvailableRoles(['admin', 'user']);
+        }
+      }
+    };
+    
+    fetchRoles();
   }, [usersData]);
+
+  // Use available roles from config, fallback to roles from users
+  const roles = useMemo(() => {
+    if (availableRoles.length > 0) {
+      return availableRoles;
+    }
+    // Fallback: extract from users if config not loaded yet
+    if (usersData?.items) {
+      const roleSet = new Set<string>();
+      usersData.items.forEach((user) => {
+        const role = user.role || 'user';
+        roleSet.add(role);
+      });
+      return Array.from(roleSet).sort();
+    }
+    return ['admin', 'user']; // Default fallback
+  }, [availableRoles, usersData]);
 
   // Get all pages from navigation (excluding admin pages)
   // For now, we'll use a placeholder - in production this would come from navigation items

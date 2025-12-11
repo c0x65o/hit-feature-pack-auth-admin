@@ -63,7 +63,7 @@ export function Users({ onNavigate }) {
             return 'Never';
         return formatDate(dateStr);
     };
-    return (_jsxs(Page, { title: "Users", description: "Manage user accounts", actions: adminConfig?.allow_signup !== false ? (_jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] })) : null, children: [error && (_jsx(Alert, { variant: "error", title: "Error loading users", children: error.message })), _jsx(Card, { children: _jsx(DataTable, { columns: [
+    return (_jsxs(Page, { title: "Users", description: "Manage user accounts", actions: _jsxs(Button, { variant: "primary", onClick: () => setCreateModalOpen(true), children: [_jsx(UserPlus, { size: 16, className: "mr-2" }), "Add User"] }), children: [error && (_jsx(Alert, { variant: "error", title: "Error loading users", children: error.message })), _jsx(Card, { children: _jsx(DataTable, { columns: [
                         {
                             key: 'email',
                             label: 'Email',

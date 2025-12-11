@@ -78,12 +78,10 @@ export function Users({ onNavigate }: UsersProps) {
       title="Users"
       description="Manage user accounts"
       actions={
-        adminConfig?.allow_signup !== false ? (
-          <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
-            <UserPlus size={16} className="mr-2" />
-            Add User
-          </Button>
-        ) : null
+        <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+          <UserPlus size={16} className="mr-2" />
+          Add User
+        </Button>
       }
     >
       {/* Error */}
