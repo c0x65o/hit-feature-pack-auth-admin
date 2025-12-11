@@ -161,10 +161,19 @@ interface AuthAdminConfig {
     new_device_alerts: boolean;
     lockout_notify_user: boolean;
 }
+/**
+ * Hook to get auth admin config.
+ *
+ * Config is STATIC - generated at build time from hit.yaml and injected
+ * into window.__HIT_CONFIG by HitAppProvider. No API calls needed.
+ *
+ * This hook reads config synchronously from the window global,
+ * avoiding any loading states or UI flicker.
+ */
 export declare function useAuthAdminConfig(): {
-    config: AuthAdminConfig | null;
+    config: AuthAdminConfig;
     loading: boolean;
-    error: Error | null;
+    error: null;
 };
 export { AuthAdminError };
 export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };

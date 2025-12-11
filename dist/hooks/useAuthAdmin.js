@@ -596,65 +596,69 @@ export function useInviteMutations() {
     };
     return { createInvite, resendInvite, revokeInvite, loading, error };
 }
+/**
+ * Get admin config from window global (set by HitAppProvider).
+ * Config is STATIC - generated at build time from hit.yaml.
+ * No API calls needed.
+ */
+function getWindowAdminConfig() {
+    const defaults = {
+        allow_signup: false,
+        allow_invited: false,
+        password_reset: true,
+        two_factor_auth: false,
+        audit_log: true,
+        magic_link_login: false,
+        email_verification: true,
+        oauth_providers: [],
+        rate_limiting: true,
+        two_factor_required: false,
+        recovery_codes_enabled: true,
+        remember_device: true,
+        device_fingerprinting: false,
+        new_device_alerts: true,
+        lockout_notify_user: true,
+    };
+    if (typeof window === 'undefined') {
+        return defaults;
+    }
+    const win = window;
+    if (!win.__HIT_CONFIG?.auth) {
+        return defaults;
+    }
+    const auth = win.__HIT_CONFIG.auth;
+    return {
+        allow_signup: auth.allowSignup ?? defaults.allow_signup,
+        allow_invited: auth.allowInvited ?? defaults.allow_invited,
+        password_reset: auth.passwordReset ?? defaults.password_reset,
+        two_factor_auth: auth.twoFactorAuth ?? defaults.two_factor_auth,
+        audit_log: auth.auditLog ?? defaults.audit_log,
+        magic_link_login: auth.magicLinkLogin ?? defaults.magic_link_login,
+        email_verification: auth.emailVerification ?? defaults.email_verification,
+        oauth_providers: auth.socialProviders || defaults.oauth_providers,
+        rate_limiting: auth.rateLimiting ?? defaults.rate_limiting,
+        two_factor_required: auth.twoFactorRequired ?? defaults.two_factor_required,
+        recovery_codes_enabled: auth.recoveryCodesEnabled ?? defaults.recovery_codes_enabled,
+        remember_device: auth.rememberDevice ?? defaults.remember_device,
+        device_fingerprinting: auth.deviceFingerprinting ?? defaults.device_fingerprinting,
+        new_device_alerts: auth.newDeviceAlerts ?? defaults.new_device_alerts,
+        lockout_notify_user: auth.lockoutNotifyUser ?? defaults.lockout_notify_user,
+    };
+}
+/**
+ * Hook to get auth admin config.
+ *
+ * Config is STATIC - generated at build time from hit.yaml and injected
+ * into window.__HIT_CONFIG by HitAppProvider. No API calls needed.
+ *
+ * This hook reads config synchronously from the window global,
+ * avoiding any loading states or UI flicker.
+ */
 export function useAuthAdminConfig() {
-    const [config, setConfig] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    useEffect(() => {
-        const mapHitConfig = (hitCfg) => {
-            if (!hitCfg?.auth)
-                return {};
-            return {
-                allow_signup: hitCfg.auth.allowSignup,
-                allow_invited: hitCfg.auth.allowInvited,
-                password_reset: hitCfg.auth.passwordReset,
-                two_factor_auth: hitCfg.auth.twoFactorAuth,
-                audit_log: hitCfg.auth.auditLog,
-                magic_link_login: hitCfg.auth.magicLinkLogin,
-                email_verification: hitCfg.auth.emailVerification,
-                oauth_providers: hitCfg.auth.socialProviders || [],
-                rate_limiting: hitCfg.auth.rateLimiting,
-                two_factor_required: hitCfg.auth.twoFactorRequired,
-                recovery_codes_enabled: hitCfg.auth.recoveryCodesEnabled,
-                remember_device: hitCfg.auth.rememberDevice,
-                device_fingerprinting: hitCfg.auth.deviceFingerprinting,
-                new_device_alerts: hitCfg.auth.newDeviceAlerts,
-                lockout_notify_user: hitCfg.auth.lockoutNotifyUser,
-            };
-        };
-        Promise.all([
-            fetchWithAuth('/config').catch((e) => {
-                setError(e);
-                return null;
-            }),
-            fetch('/hit-config.json').then((res) => res.json()).catch(() => null),
-        ])
-            .then(([apiRes, hitCfg]) => {
-            const apiConfig = (apiRes?.features || apiRes?.data || apiRes);
-            const merged = {
-                allow_signup: apiConfig?.allow_signup ?? mapHitConfig(hitCfg).allow_signup ?? false,
-                allow_invited: apiConfig?.allow_invited ?? mapHitConfig(hitCfg).allow_invited ?? false,
-                password_reset: apiConfig?.password_reset ?? mapHitConfig(hitCfg).password_reset ?? true,
-                two_factor_auth: apiConfig?.two_factor_auth ?? mapHitConfig(hitCfg).two_factor_auth ?? false,
-                audit_log: apiConfig?.audit_log ?? mapHitConfig(hitCfg).audit_log ?? true,
-                magic_link_login: apiConfig?.magic_link_login ?? mapHitConfig(hitCfg).magic_link_login ?? false,
-                email_verification: apiConfig?.email_verification ?? mapHitConfig(hitCfg).email_verification ?? true,
-                oauth_providers: apiConfig?.oauth_providers ?? mapHitConfig(hitCfg).oauth_providers ?? [],
-                rate_limiting: apiConfig?.rate_limiting ?? mapHitConfig(hitCfg).rate_limiting ?? true,
-                two_factor_required: apiConfig?.two_factor_required ?? mapHitConfig(hitCfg).two_factor_required ?? false,
-                recovery_codes_enabled: apiConfig?.recovery_codes_enabled ?? mapHitConfig(hitCfg).recovery_codes_enabled ?? true,
-                remember_device: apiConfig?.remember_device ?? mapHitConfig(hitCfg).remember_device ?? true,
-                device_fingerprinting: apiConfig?.device_fingerprinting ?? mapHitConfig(hitCfg).device_fingerprinting ?? false,
-                new_device_alerts: apiConfig?.new_device_alerts ?? mapHitConfig(hitCfg).new_device_alerts ?? true,
-                lockout_notify_user: apiConfig?.lockout_notify_user ?? mapHitConfig(hitCfg).lockout_notify_user ?? true,
-            };
-            setConfig(merged);
-            setError(null);
-        })
-            .catch((e) => setError(e))
-            .finally(() => setLoading(false));
-    }, []);
-    return { config, loading, error };
+    // Read config synchronously - no useEffect, no fetch
+    const [config] = useState(() => getWindowAdminConfig());
+    // No loading state needed - config is static and available immediately
+    return { config, loading: false, error: null };
 }
 // Export types and error class
 export { AuthAdminError };
