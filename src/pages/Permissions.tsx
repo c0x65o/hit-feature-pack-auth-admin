@@ -310,7 +310,7 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                                     <Checkbox
                                       checked={isEnabled}
                                       onChange={(checked: boolean) => handleRolePermissionToggle(page.path, checked)}
-                                      disabled={mutating}
+                                      disabled={mutating || selectedRole.toLowerCase() === 'admin'}
                                     />
                                   </div>
                                 );
@@ -411,11 +411,19 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                           Close
                         </Button>
                       </div>
-                      <div className="mb-4">
-                        <Alert variant="info">
-                          User overrides take precedence over role permissions. Configure specific page access for this user.
-                        </Alert>
-                      </div>
+                      {selectedUserForOverride.role?.toLowerCase() === 'admin' ? (
+                        <div className="mb-4">
+                          <Alert variant="warning">
+                            Admin user overrides cannot be modified. Admin users always have full access to all pages.
+                          </Alert>
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <Alert variant="info">
+                            User overrides take precedence over role permissions. Configure specific page access for this user.
+                          </Alert>
+                        </div>
+                      )}
 
                       {userOverridesLoading ? (
                         <Spinner />
@@ -445,9 +453,9 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                                     <Checkbox
                                       checked={isEnabled ?? true}
                                       onChange={(checked: boolean) => handleUserOverrideToggle(selectedUser, page.path, checked)}
-                                      disabled={mutating}
+                                      disabled={mutating || selectedUserForOverride.role?.toLowerCase() === 'admin'}
                                     />
-                                    {isEnabled !== undefined && (
+                                    {isEnabled !== undefined && selectedUserForOverride.role?.toLowerCase() !== 'admin' && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
