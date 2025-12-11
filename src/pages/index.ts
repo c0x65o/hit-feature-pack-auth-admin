@@ -12,3 +12,4 @@ export { UserDetail, default as UserDetailPage } from './UserDetail';
 export { Sessions, default as SessionsPage } from './Sessions';
 export { AuditLog, default as AuditLogPage } from './AuditLog';
 export { Invites, default as InvitesPage } from './Invites';
+export { Permissions, default as PermissionsPage } from './Permissions';

@@ -17,7 +17,7 @@
  * ```
  */
 // Pages - exported individually for tree-shaking
-export { Dashboard, DashboardPage, Users, UsersPage, UserDetail, UserDetailPage, Sessions, SessionsPage, AuditLog, AuditLogPage, Invites, InvitesPage, } from './pages/index';
+export { Dashboard, DashboardPage, Users, UsersPage, UserDetail, UserDetailPage, Sessions, SessionsPage, AuditLog, AuditLogPage, Invites, InvitesPage, Permissions, PermissionsPage, } from './pages/index';
 // Components - exported individually for tree-shaking
 export * from './components/index';
 // Hooks - exported individually for tree-shaking

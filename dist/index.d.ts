@@ -16,7 +16,7 @@
  * <Route path="/admin/users/:email" element={<UserDetail email={params.email} />} />
  * ```
  */
-export { Dashboard, DashboardPage, Users, UsersPage, UserDetail, UserDetailPage, Sessions, SessionsPage, AuditLog, AuditLogPage, Invites, InvitesPage, } from './pages/index';
+export { Dashboard, DashboardPage, Users, UsersPage, UserDetail, UserDetailPage, Sessions, SessionsPage, AuditLog, AuditLogPage, Invites, InvitesPage, Permissions, PermissionsPage, } from './pages/index';
 export * from './components/index';
 export * from './hooks/index';
 export { nav } from './nav';

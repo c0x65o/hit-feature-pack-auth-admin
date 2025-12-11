@@ -1104,6 +1104,229 @@ export function useProfileFieldMutations() {
   return { createField, updateField, deleteField, loading, error };
 }
 
+// =============================================================================
+// PAGE PERMISSIONS HOOKS
+// =============================================================================
+
+export interface RolePagePermission {
+  id: string;
+  role: string;
+  page_path: string;
+  enabled: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface UserPageOverride {
+  id: string;
+  user_email: string;
+  page_path: string;
+  enabled: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface UserWithOverrides {
+  email: string;
+  role: string;
+  override_count: number;
+}
+
+/**
+ * Hook to fetch role page permissions
+ */
+export function useRolePagePermissions(role: string) {
+  const [data, setData] = useState<RolePagePermission[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchPermissions = useCallback(async () => {
+    if (!role) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchWithAuth<{ role: string; permissions: RolePagePermission[] }>(
+        `/admin/permissions/roles/${encodeURIComponent(role)}/pages`
+      );
+      setData(result.permissions);
+    } catch (e) {
+      setError(e as Error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [role]);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  return { data, loading, error, refresh: fetchPermissions };
+}
+
+/**
+ * Hook to fetch user page overrides
+ */
+export function useUserPageOverrides(email: string) {
+  const [data, setData] = useState<UserPageOverride[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchOverrides = useCallback(async () => {
+    if (!email) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchWithAuth<{ user_email: string; overrides: UserPageOverride[] }>(
+        `/admin/permissions/users/${encodeURIComponent(email)}/pages`
+      );
+      setData(result.overrides);
+    } catch (e) {
+      setError(e as Error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
+
+  useEffect(() => {
+    fetchOverrides();
+  }, [fetchOverrides]);
+
+  return { data, loading, error, refresh: fetchOverrides };
+}
+
+/**
+ * Hook to fetch users with overrides
+ */
+export function useUsersWithOverrides() {
+  const [data, setData] = useState<UserWithOverrides[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchWithAuth<{ users: UserWithOverrides[] }>(
+        '/admin/permissions/users-with-overrides'
+      );
+      setData(result.users);
+    } catch (e) {
+      setError(e as Error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  return { data, loading, error, refresh: fetchUsers };
+}
+
+/**
+ * Hook for page permissions mutations
+ */
+export function usePagePermissionsMutations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const setRolePagePermission = useCallback(async (role: string, pagePath: string, enabled: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/permissions/roles/${encodeURIComponent(role)}/pages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          role,
+          page_path: pagePath,
+          enabled,
+        }),
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteRolePagePermission = useCallback(async (role: string, pagePath: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(
+        `/admin/permissions/roles/${encodeURIComponent(role)}/pages/${encodeURIComponent(pagePath)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const setUserPageOverride = useCallback(async (email: string, pagePath: string, enabled: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/permissions/users/${encodeURIComponent(email)}/pages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          page_path: pagePath,
+          enabled,
+        }),
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteUserPageOverride = useCallback(async (email: string, pagePath: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(
+        `/admin/permissions/users/${encodeURIComponent(email)}/pages/${encodeURIComponent(pagePath)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    setRolePagePermission,
+    deleteRolePagePermission,
+    setUserPageOverride,
+    deleteUserPageOverride,
+    loading,
+    error,
+  };
+}
+
 // Export types and error class
 export { AuthAdminError };
 export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };

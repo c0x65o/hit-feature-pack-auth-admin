@@ -248,6 +248,65 @@ export declare function useProfileFieldMutations(): {
     loading: boolean;
     error: Error | null;
 };
+export interface RolePagePermission {
+    id: string;
+    role: string;
+    page_path: string;
+    enabled: boolean;
+    created_at: string | null;
+    updated_at: string | null;
+}
+export interface UserPageOverride {
+    id: string;
+    user_email: string;
+    page_path: string;
+    enabled: boolean;
+    created_at: string | null;
+    updated_at: string | null;
+}
+export interface UserWithOverrides {
+    email: string;
+    role: string;
+    override_count: number;
+}
+/**
+ * Hook to fetch role page permissions
+ */
+export declare function useRolePagePermissions(role: string): {
+    data: RolePagePermission[] | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+/**
+ * Hook to fetch user page overrides
+ */
+export declare function useUserPageOverrides(email: string): {
+    data: UserPageOverride[] | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+/**
+ * Hook to fetch users with overrides
+ */
+export declare function useUsersWithOverrides(): {
+    data: UserWithOverrides[] | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+/**
+ * Hook for page permissions mutations
+ */
+export declare function usePagePermissionsMutations(): {
+    setRolePagePermission: (role: string, pagePath: string, enabled: boolean) => Promise<void>;
+    deleteRolePagePermission: (role: string, pagePath: string) => Promise<void>;
+    setUserPageOverride: (email: string, pagePath: string, enabled: boolean) => Promise<void>;
+    deleteUserPageOverride: (email: string, pagePath: string) => Promise<void>;
+    loading: boolean;
+    error: Error | null;
+};
 export { AuthAdminError };
 export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };
 //# sourceMappingURL=useAuthAdmin.d.ts.map

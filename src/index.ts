@@ -31,6 +31,8 @@ export {
   AuditLogPage,
   Invites,
   InvitesPage,
+  Permissions,
+  PermissionsPage,
 } from './pages/index';
 
 // Components - exported individually for tree-shaking
