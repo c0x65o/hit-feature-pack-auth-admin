@@ -20,8 +20,9 @@ import {
   Upload,
   Camera,
   Link2,
+  Users,
 } from 'lucide-react';
-import { useUi } from '@hit/ui-kit';
+import { useUi, type BreadcrumbItem } from '@hit/ui-kit';
 import { formatDateTime } from '@hit/sdk';
 import {
   useUser,
@@ -334,16 +335,20 @@ export function UserDetail({ email, onNavigate }: UserDetailProps) {
     );
   }
 
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: 'Admin', href: '/admin', icon: <Shield size={14} /> },
+    { label: 'Users', href: '/admin/users', icon: <Users size={14} /> },
+    { label: user.email },
+  ];
+
   return (
     <Page
       title={user.email}
       description={user.locked ? 'This account is locked' : undefined}
+      breadcrumbs={breadcrumbs}
+      onNavigate={navigate}
       actions={
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => navigate('/admin/users')}>
-            <ArrowLeft size={16} className="mr-2" />
-            Back
-          </Button>
           {isEditing ? (
             <>
               <Button variant="primary" onClick={handleSave} disabled={mutating}>
