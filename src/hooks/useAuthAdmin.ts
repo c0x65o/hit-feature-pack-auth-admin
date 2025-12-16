@@ -774,7 +774,7 @@ export function useInviteMutations() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const createInvite = async (data: { email: string; roles?: string[] }) => {
+  const createInvite = async (data: { email: string; role?: string }) => {
     setLoading(true);
     setError(null);
     try {

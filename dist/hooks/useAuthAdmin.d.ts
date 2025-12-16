@@ -152,7 +152,7 @@ export declare function useSessionMutations(): {
 export declare function useInviteMutations(): {
     createInvite: (data: {
         email: string;
-        roles?: string[];
+        role?: string;
     }) => Promise<void>;
     resendInvite: (inviteId: string) => Promise<void>;
     revokeInvite: (inviteId: string) => Promise<void>;

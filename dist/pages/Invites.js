@@ -2,11 +2,12 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 import { RefreshCw, Trash2, Send, UserPlus, Clock } from 'lucide-react';
-import { useUi } from '@hit/ui-kit';
+import { useUi, useAlertDialog } from '@hit/ui-kit';
 import { formatDateShort } from '@hit/sdk';
 import { useInvites, useInviteMutations } from '../hooks/useAuthAdmin';
 export function Invites({ onNavigate }) {
-    const { Page, Card, Button, Badge, DataTable, Modal, Input, Select, Alert, Spinner, EmptyState } = useUi();
+    const { Page, Card, Button, Badge, DataTable, Modal, Input, Select, Alert, Spinner, EmptyState, AlertDialog } = useUi();
+    const alertDialog = useAlertDialog();
     const [page, setPage] = useState(1);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [newEmail, setNewEmail] = useState('');
@@ -15,7 +16,7 @@ export function Invites({ onNavigate }) {
     const { createInvite, resendInvite, revokeInvite, loading: mutating, error: mutationError } = useInviteMutations();
     const handleCreateInvite = async () => {
         try {
-            await createInvite({ email: newEmail, roles: [newRole] });
+            await createInvite({ email: newEmail, role: newRole });
             setCreateModalOpen(false);
             setNewEmail('');
             setNewRole('user');
@@ -27,20 +28,37 @@ export function Invites({ onNavigate }) {
         }
     };
     const handleResendInvite = async (inviteId) => {
-        if (confirm('Resend this invitation?')) {
+        const confirmed = await alertDialog.showConfirm('Resend this invitation?', {
+            variant: 'info',
+            title: 'Resend Invitation',
+            confirmText: 'Resend',
+            cancelText: 'Cancel',
+        });
+        if (confirmed) {
             try {
                 await resendInvite(inviteId);
-                alert('Invitation resent!');
+                await alertDialog.showAlert('Invitation resent!', {
+                    variant: 'success',
+                    title: 'Success',
+                });
             }
             catch (e) {
-                // Error is stored in mutationError and will be displayed
                 const errorMessage = e instanceof Error ? e.message : 'Failed to resend invitation';
-                alert(`Error: ${errorMessage}`);
+                await alertDialog.showAlert(errorMessage, {
+                    variant: 'error',
+                    title: 'Error',
+                });
             }
         }
     };
     const handleRevokeInvite = async (inviteId) => {
-        if (confirm('Are you sure you want to revoke this invitation?')) {
+        const confirmed = await alertDialog.showConfirm('Are you sure you want to revoke this invitation?', {
+            variant: 'warning',
+            title: 'Revoke Invitation',
+            confirmText: 'Revoke',
+            cancelText: 'Cancel',
+        });
+        if (confirmed) {
             try {
                 await revokeInvite(inviteId);
                 refresh();
@@ -107,7 +125,7 @@ export function Invites({ onNavigate }) {
                 }, title: "Send Invitation", description: "Invite a new user to join", children: _jsxs("div", { className: "space-y-4", children: [mutationError && (_jsx(Alert, { variant: "error", title: "Failed to send invitation", children: mutationError.message })), _jsx(Input, { label: "Email", type: "email", value: newEmail, onChange: setNewEmail, placeholder: "user@example.com", required: true }), _jsx(Select, { label: "Role", options: [
                                 { value: 'user', label: 'User' },
                                 { value: 'admin', label: 'Admin' },
-                            ], value: newRole, onChange: setNewRole }), _jsxs("div", { className: "flex justify-end gap-3 pt-4", children: [_jsx(Button, { variant: "ghost", onClick: () => setCreateModalOpen(false), children: "Cancel" }), _jsx(Button, { variant: "primary", onClick: handleCreateInvite, loading: mutating, disabled: !newEmail, children: "Send Invite" })] })] }) })] }));
+                            ], value: newRole, onChange: setNewRole }), _jsxs("div", { className: "flex justify-end gap-3 pt-4", children: [_jsx(Button, { variant: "ghost", onClick: () => setCreateModalOpen(false), children: "Cancel" }), _jsx(Button, { variant: "primary", onClick: handleCreateInvite, loading: mutating, disabled: !newEmail, children: "Send Invite" })] })] }) }), _jsx(AlertDialog, { ...alertDialog.props })] }));
 }
 export default Invites;
 //# sourceMappingURL=Invites.js.map
