@@ -51,11 +51,10 @@ nav:
       - label: Users
         path: /admin/users
         icon: Users
-        children:
-          - label: Groups
-            path: /admin/groups
-            icon: UsersRound
-            featureFlag: auth.user_groups_enabled
+      - label: Groups
+        path: /admin/groups
+        icon: UsersRound
+        featureFlag: auth.user_groups_enabled
       - label: Permissions
         path: /admin/permissions
         icon: Shield
