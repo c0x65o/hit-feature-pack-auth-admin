@@ -30,6 +30,10 @@ routes:
   - path: /admin/permissions
     page: Permissions
     roles: [admin]
+  - path: /admin/groups
+    page: Groups
+    roles: [admin]
+    featureFlag: auth.user_groups_enabled
 
 # Navigation contributions - auto-added to shell sidebar
 nav:
@@ -61,6 +65,10 @@ nav:
         path: /admin/invites
         icon: Mail
         featureFlag: auth.allow_invited
+      - label: Groups
+        path: /admin/groups
+        icon: UsersRound
+        featureFlag: auth.user_groups_enabled
 
 # Notification types this pack can emit
 notifications:

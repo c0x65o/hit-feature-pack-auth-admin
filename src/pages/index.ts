@@ -13,3 +13,4 @@ export { Sessions, default as SessionsPage } from './Sessions';
 export { AuditLog, default as AuditLogPage } from './AuditLog';
 export { Invites, default as InvitesPage } from './Invites';
 export { Permissions, default as PermissionsPage } from './Permissions';
+export { Groups, default as GroupsPage } from './Groups';

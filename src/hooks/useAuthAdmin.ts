@@ -1327,6 +1327,326 @@ export function usePagePermissionsMutations() {
   };
 }
 
+interface GroupPagePermission {
+  id: string;
+  page_path: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useGroupPagePermissions(groupId: string | null) {
+  const [data, setData] = useState<GroupPagePermission[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchPermissions = useCallback(async () => {
+    if (!groupId) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchWithAuth<{ group_id: string; group_name: string; permissions: GroupPagePermission[] }>(
+        `/admin/permissions/groups/${groupId}/pages`
+      );
+      setData(result.permissions);
+    } catch (e) {
+      setError(e as Error);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  return { data, loading, error, refresh: fetchPermissions };
+}
+
+export function useGroupPagePermissionsMutations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const setGroupPagePermission = useCallback(async (groupId: string, pagePath: string, enabled: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/permissions/groups/${groupId}/pages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          page_path: pagePath,
+          enabled,
+        }),
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteGroupPagePermission = useCallback(async (groupId: string, pagePath: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(
+        `/admin/permissions/groups/${groupId}/pages/${encodeURIComponent(pagePath)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    setGroupPagePermission,
+    deleteGroupPagePermission,
+    loading,
+    error,
+  };
+}
+
+// Groups hooks
+interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  user_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserGroup {
+  id: string;
+  user_email: string;
+  group_id: string;
+  group_name: string;
+  created_at: string;
+  created_by: string | null;
+}
+
+export function useGroups() {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchWithAuth<Group[]>('/admin/groups');
+      setGroups(data);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { data: groups, loading, error, refresh };
+}
+
+export function useGroup(groupId: string | null) {
+  const [group, setGroup] = useState<Group | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!groupId) {
+      setGroup(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchWithAuth<Group>(`/admin/groups/${groupId}`);
+      setGroup(data);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { data: group, loading, error, refresh };
+}
+
+export function useGroupUsers(groupId: string | null) {
+  const [users, setUsers] = useState<UserGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!groupId) {
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchWithAuth<UserGroup[]>(`/admin/groups/${groupId}/users`);
+      setUsers(data);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { data: users, loading, error, refresh };
+}
+
+export function useUserGroups(userEmail: string | null) {
+  const [groups, setGroups] = useState<UserGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!userEmail) {
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchWithAuth<UserGroup[]>(`/admin/users/${encodeURIComponent(userEmail)}/groups`);
+      setGroups(data);
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userEmail]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { data: groups, loading, error, refresh };
+}
+
+export function useGroupMutations() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const createGroup = useCallback(async (group: { name: string; description?: string | null; metadata?: Record<string, unknown> }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchWithAuth<Group>('/admin/groups', {
+        method: 'POST',
+        body: JSON.stringify(group),
+      });
+      return data;
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateGroup = useCallback(async (groupId: string, group: { name?: string; description?: string | null; metadata?: Record<string, unknown> }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchWithAuth<Group>(`/admin/groups/${groupId}`, {
+        method: 'PUT',
+        body: JSON.stringify(group),
+      });
+      return data;
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteGroup = useCallback(async (groupId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/groups/${groupId}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const addUserToGroup = useCallback(async (groupId: string, userEmail: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchWithAuth<UserGroup>(`/admin/groups/${groupId}/users/${encodeURIComponent(userEmail)}`, {
+        method: 'POST',
+      });
+      return data;
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const removeUserFromGroup = useCallback(async (groupId: string, userEmail: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await fetchWithAuth(`/admin/groups/${groupId}/users/${encodeURIComponent(userEmail)}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      setError(e as Error);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    addUserToGroup,
+    removeUserFromGroup,
+    loading,
+    error,
+  };
+}
+
 // Export types and error class
 export { AuthAdminError };
-export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };
+export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig, Group, UserGroup, GroupPagePermission };

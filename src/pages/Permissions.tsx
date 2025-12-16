@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Shield, Users, ToggleLeft, ToggleRight, Settings, UserCheck } from 'lucide-react';
+import { Shield, Users, ChevronRight, ChevronDown, Folder, File } from 'lucide-react';
 import { useUi } from '@hit/ui-kit';
 import {
   useUsers,
@@ -9,48 +9,121 @@ import {
   useUserPageOverrides,
   useUsersWithOverrides,
   usePagePermissionsMutations,
+  useGroups,
+  useGroupPagePermissions,
+  useGroupPagePermissionsMutations,
   type User,
+  type Group,
 } from '../hooks/useAuthAdmin';
 
 interface PermissionsProps {
   onNavigate?: (path: string) => void;
 }
 
-// Helper to extract all pages from navigation items
-// Excludes admin pages and auth pages
+interface NavItem {
+  id?: string;
+  label: string;
+  path?: string;
+  icon?: string;
+  children?: NavItem[];
+  [key: string]: any;
+}
+
+interface TreeNode {
+  path: string;
+  label: string;
+  icon?: string;
+  children: TreeNode[];
+  level: number;
+}
+
+// Build tree structure from navigation items
+function buildNavTree(navItems: NavItem[]): TreeNode[] {
+  const tree: TreeNode[] = [];
+  const pathMap = new Map<string, TreeNode>();
+
+  function processItem(item: NavItem, parentPath: string = '', level: number = 0): void {
+    // Skip admin pages and auth pages
+    if (item.path?.startsWith('/admin') || item.path?.startsWith('/auth') || item.path?.startsWith('/login')) {
+      return;
+    }
+
+    // Skip items that require admin role
+    if (item.roles && item.roles.includes('admin')) {
+      return;
+    }
+
+    const currentPath = item.path || parentPath;
+    if (!currentPath || currentPath === '/') {
+      // Process children without adding parent
+      if (item.children) {
+        item.children.forEach(child => processItem(child, parentPath, level));
+      }
+      return;
+    }
+
+    // Check if node already exists
+    let node = pathMap.get(currentPath);
+    if (!node) {
+      node = {
+        path: currentPath,
+        label: item.label || currentPath,
+        icon: item.icon,
+        children: [],
+        level,
+      };
+      pathMap.set(currentPath, node);
+
+      // Add to tree or parent's children
+      if (parentPath && pathMap.has(parentPath)) {
+        pathMap.get(parentPath)!.children.push(node);
+      } else {
+        tree.push(node);
+      }
+    }
+
+    // Process children
+    if (item.children) {
+      item.children.forEach(child => processItem(child, currentPath, level + 1));
+    }
+  }
+
+  navItems.forEach(item => processItem(item));
+
+  // Sort tree recursively
+  function sortTree(nodes: TreeNode[]): void {
+    nodes.sort((a, b) => a.label.localeCompare(b.label));
+    nodes.forEach(node => sortTree(node.children));
+  }
+  sortTree(tree);
+
+  return tree;
+}
+
+// Get all pages from navigation items
 function getAllPages(): Array<{ path: string; label: string }> {
   if (typeof window === 'undefined') return [];
   
   try {
-    // Try to get navigation items from the generated nav file
-    // This is a dynamic import that may fail if nav hasn't been generated
     const nav = require('@/.hit/generated/nav');
     const navItems = nav.featurePackNav || [];
     
     const pages: Array<{ path: string; label: string }> = [];
     
-    // Recursively extract pages from nav items
     function extractPages(items: any[], parentPath = '') {
       for (const item of items) {
-        // Skip admin pages and auth pages
         if (item.path?.startsWith('/admin') || item.path?.startsWith('/auth') || item.path?.startsWith('/login')) {
           continue;
         }
-        
-        // Skip items that require admin role
         if (item.roles && item.roles.includes('admin')) {
           continue;
         }
-        
-        // Add page if it has a path
         if (item.path && item.path !== '/') {
           pages.push({
             path: item.path,
             label: item.label || item.path,
           });
         }
-        
-        // Recursively process children
         if (item.children && Array.isArray(item.children)) {
           extractPages(item.children, item.path || '');
         }
@@ -59,7 +132,6 @@ function getAllPages(): Array<{ path: string; label: string }> {
     
     extractPages(navItems);
     
-    // Also try to get custom nav items
     try {
       const customNav = require('@/lib/custom-nav');
       if (customNav.customNavItems) {
@@ -69,7 +141,6 @@ function getAllPages(): Array<{ path: string; label: string }> {
       // Custom nav not available
     }
     
-    // Remove duplicates
     const uniquePages = Array.from(
       new Map(pages.map((p) => [p.path, p])).values()
     );
@@ -81,18 +152,61 @@ function getAllPages(): Array<{ path: string; label: string }> {
   }
 }
 
-export function Permissions({ onNavigate }: PermissionsProps) {
-  const { Page, Card, Button, Badge, DataTable, Modal, Input, Alert, Spinner, Tabs, Checkbox } = useUi();
+// Get navigation tree
+function getNavTree(): TreeNode[] {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const nav = require('@/.hit/generated/nav');
+    const navItems = nav.featurePackNav || [];
+    
+    try {
+      const customNav = require('@/lib/custom-nav');
+      if (customNav.customNavItems) {
+        navItems.push(...customNav.customNavItems);
+      }
+    } catch {
+      // Custom nav not available
+    }
+    
+    return buildNavTree(navItems);
+  } catch (error) {
+    console.warn('Could not load navigation items:', error);
+    return [];
+  }
+}
 
+// Check if a path is a parent of another path
+function isParentPath(parentPath: string, childPath: string): boolean {
+  if (!childPath.startsWith(parentPath)) return false;
+  // Exact match is not a parent
+  if (parentPath === childPath) return false;
+  // Check if the next character after parent path is a slash
+  return childPath[parentPath.length] === '/';
+}
+
+// Get all descendant paths
+function getDescendantPaths(path: string, allPaths: string[]): string[] {
+  return allPaths.filter(p => isParentPath(path, p));
+}
+
+export function Permissions({ onNavigate }: PermissionsProps) {
+  const { Page, Card, Button, Badge, Modal, Alert, Spinner, Tabs, Checkbox } = useUi();
+
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'roles' | 'users'>('roles');
+  const [activeTab, setActiveTab] = useState<'groups' | 'roles' | 'users'>('groups');
   const [userOverrideModalOpen, setUserOverrideModalOpen] = useState(false);
   const [selectedUserForOverride, setSelectedUserForOverride] = useState<User | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
   const { data: usersData, loading: usersLoading } = useUsers({ pageSize: 1000 });
+  const { data: groups, loading: groupsLoading } = useGroups();
   const { data: rolePermissions, loading: rolePermissionsLoading, refresh: refreshRolePermissions } =
     useRolePagePermissions(selectedRole);
+  const { data: groupPermissions, loading: groupPermissionsLoading, refresh: refreshGroupPermissions } =
+    useGroupPagePermissions(selectedGroup);
   const { data: userOverrides, loading: userOverridesLoading, refresh: refreshUserOverrides } =
     useUserPageOverrides(selectedUser);
   const { data: usersWithOverrides, loading: usersWithOverridesLoading, refresh: refreshUsersWithOverrides } =
@@ -102,14 +216,18 @@ export function Permissions({ onNavigate }: PermissionsProps) {
     deleteRolePagePermission,
     setUserPageOverride,
     deleteUserPageOverride,
-    loading: mutating,
+    loading: mutatingPermissions,
   } = usePagePermissionsMutations();
+  const {
+    setGroupPagePermission,
+    deleteGroupPagePermission,
+    loading: mutatingGroupPermissions,
+  } = useGroupPagePermissionsMutations();
 
-  // Get available roles from auth module configuration
+  // Get available roles
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   
   React.useEffect(() => {
-    // Fetch available roles from auth module /features endpoint
     const fetchRoles = async () => {
       try {
         const authUrl = typeof window !== 'undefined' 
@@ -129,7 +247,6 @@ export function Permissions({ onNavigate }: PermissionsProps) {
           const roles = data.features?.available_roles || ['admin', 'user'];
           setAvailableRoles(roles);
         } else {
-          // Fallback: extract roles from users if API fails
           if (usersData?.items) {
             const roleSet = new Set<string>();
             usersData.items.forEach((user) => {
@@ -143,7 +260,6 @@ export function Permissions({ onNavigate }: PermissionsProps) {
         }
       } catch (error) {
         console.warn('Failed to fetch available roles, using fallback:', error);
-        // Fallback: extract roles from users
         if (usersData?.items) {
           const roleSet = new Set<string>();
           usersData.items.forEach((user) => {
@@ -160,12 +276,10 @@ export function Permissions({ onNavigate }: PermissionsProps) {
     fetchRoles();
   }, [usersData]);
 
-  // Use available roles from config, fallback to roles from users
   const roles = useMemo(() => {
     if (availableRoles.length > 0) {
       return availableRoles;
     }
-    // Fallback: extract from users if config not loaded yet
     if (usersData?.items) {
       const roleSet = new Set<string>();
       usersData.items.forEach((user) => {
@@ -174,22 +288,98 @@ export function Permissions({ onNavigate }: PermissionsProps) {
       });
       return Array.from(roleSet).sort();
     }
-    return ['admin', 'user']; // Default fallback
+    return ['admin', 'user'];
   }, [availableRoles, usersData]);
 
-  // Get all pages from navigation (excluding admin pages)
-  // For now, we'll use a placeholder - in production this would come from navigation items
-  const allPages = useMemo(() => {
-    // This should fetch from navigation items, excluding admin pages
-    // For now, return empty array - will be populated by user interaction
-    return getAllPages();
-  }, []);
+  const navTree = useMemo(() => getNavTree(), []);
+  const allPages = useMemo(() => getAllPages(), []);
+  const allPagePaths = useMemo(() => allPages.map(p => p.path), [allPages]);
 
-  const navigate = (path: string) => {
-    if (onNavigate) {
-      onNavigate(path);
-    } else if (typeof window !== 'undefined') {
-      window.location.href = path;
+  // Build permission maps
+  const rolePermissionMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (rolePermissions) {
+      rolePermissions.forEach((perm) => {
+        map.set(perm.page_path, perm.enabled);
+      });
+    }
+    return map;
+  }, [rolePermissions]);
+
+  const groupPermissionMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (groupPermissions) {
+      groupPermissions.forEach((perm) => {
+        map.set(perm.page_path, perm.enabled);
+      });
+    }
+    return map;
+  }, [groupPermissions]);
+
+  // Check permission with hierarchical logic
+  const getEffectivePermission = (path: string, permissionMap: Map<string, boolean>, allPaths: string[]): boolean | null => {
+    // Check if this path has an explicit permission
+    if (permissionMap.has(path)) {
+      return permissionMap.get(path)!;
+    }
+
+    // Check parent paths (walk up the tree)
+    const pathParts = path.split('/').filter(p => p);
+    for (let i = pathParts.length - 1; i > 0; i--) {
+      const parentPath = '/' + pathParts.slice(0, i).join('/');
+      if (permissionMap.has(parentPath)) {
+        const parentEnabled = permissionMap.get(parentPath)!;
+        // If parent is disabled, this path is disabled
+        if (!parentEnabled) {
+          return false;
+        }
+        // If parent is enabled, check if there are any disabled children
+        // If not, this path inherits enabled from parent
+        const descendants = getDescendantPaths(parentPath, allPaths);
+        const hasDisabledDescendant = descendants.some(descPath => {
+          const descEnabled = permissionMap.get(descPath);
+          return descEnabled === false;
+        });
+        // If no disabled descendants, inherit enabled
+        if (!hasDisabledDescendant) {
+          return true;
+        }
+      }
+    }
+
+    // No explicit permission found, default to enabled
+    return null;
+  };
+
+  const toggleExpanded = (path: string) => {
+    setExpandedPaths(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
+  const handleGroupPermissionToggle = async (pagePath: string, enabled: boolean) => {
+    if (!selectedGroup) return;
+    try {
+      if (enabled) {
+        await setGroupPagePermission(selectedGroup, pagePath, true);
+      } else {
+        // When disabling, check if we need to disable children
+        const descendants = getDescendantPaths(pagePath, allPagePaths);
+        // Disable all descendants
+        for (const descPath of descendants) {
+          await setGroupPagePermission(selectedGroup, descPath, false);
+        }
+        await setGroupPagePermission(selectedGroup, pagePath, false);
+      }
+      refreshGroupPermissions();
+    } catch (error) {
+      console.error('Failed to update group permission:', error);
     }
   };
 
@@ -199,7 +389,12 @@ export function Permissions({ onNavigate }: PermissionsProps) {
       if (enabled) {
         await setRolePagePermission(selectedRole, pagePath, true);
       } else {
-        // If disabling, create a permission with enabled=false
+        // When disabling, check if we need to disable children
+        const descendants = getDescendantPaths(pagePath, allPagePaths);
+        // Disable all descendants
+        for (const descPath of descendants) {
+          await setRolePagePermission(selectedRole, descPath, false);
+        }
         await setRolePagePermission(selectedRole, pagePath, false);
       }
       refreshRolePermissions();
@@ -215,7 +410,6 @@ export function Permissions({ onNavigate }: PermissionsProps) {
       } else {
         await setUserPageOverride(email, pagePath, false);
       }
-      // Refresh both the user's overrides and the users-with-overrides list
       await Promise.all([
         refreshUserOverrides(),
         refreshUsersWithOverrides(),
@@ -225,26 +419,141 @@ export function Permissions({ onNavigate }: PermissionsProps) {
     }
   };
 
-  // Create a map of page paths to enabled status for the selected role
-  const rolePermissionMap = useMemo(() => {
-    const map = new Map<string, boolean>();
-    if (rolePermissions) {
-      rolePermissions.forEach((perm) => {
-        map.set(perm.page_path, perm.enabled);
-      });
-    }
-    return map;
-  }, [rolePermissions]);
+  // Render tree node
+  const renderTreeNode = (node: TreeNode, permissionMap: Map<string, boolean>, onToggle: (path: string, enabled: boolean) => void, disabled: boolean = false) => {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedPaths.has(node.path);
+    const effectivePermission = getEffectivePermission(node.path, permissionMap, allPagePaths);
+    const isEnabled = effectivePermission !== null ? effectivePermission : true;
+    const isExplicit = permissionMap.has(node.path);
+
+    return (
+      <div key={node.path} className="select-none">
+        <div
+          className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded"
+          style={{ paddingLeft: `${node.level * 20 + 8}px` }}
+        >
+          {hasChildren ? (
+            <button
+              onClick={() => toggleExpanded(node.path)}
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+            >
+              {isExpanded ? (
+                <ChevronDown size={16} className="text-gray-500" />
+              ) : (
+                <ChevronRight size={16} className="text-gray-500" />
+              )}
+            </button>
+          ) : (
+            <div className="w-[24px]" />
+          )}
+          <div className="flex-1 flex items-center gap-2">
+            {hasChildren ? (
+              <Folder size={16} className="text-blue-500" />
+            ) : (
+              <File size={16} className="text-gray-400" />
+            )}
+            <span className="font-medium">{node.label}</span>
+            <span className="text-xs text-gray-500">{node.path}</span>
+            {isExplicit && (
+              <Badge variant="info" className="text-xs">Explicit</Badge>
+            )}
+            {effectivePermission === null && (
+              <Badge variant="default" className="text-xs">Default</Badge>
+            )}
+          </div>
+          <Checkbox
+            checked={isEnabled}
+            onChange={(checked: boolean) => onToggle(node.path, checked)}
+            disabled={disabled || mutatingPermissions || mutatingGroupPermissions}
+          />
+        </div>
+        {hasChildren && isExpanded && (
+          <div>
+            {node.children.map(child => renderTreeNode(child, permissionMap, onToggle, disabled || !isEnabled))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Page
       title="Permissions"
-      description="Manage page access permissions for roles and users"
+      description="Manage page access permissions using groups (preferred) or roles (fallback)"
     >
       <Tabs
         activeTab={activeTab}
-        onChange={(tabId: string) => setActiveTab(tabId as 'roles' | 'users')}
+        onChange={(tabId: string) => setActiveTab(tabId as 'groups' | 'roles' | 'users')}
         tabs={[
+          {
+            id: 'groups',
+            label: 'Group Permissions',
+            content: (
+              <div className="space-y-4 mt-4">
+                <Card>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Select Group</label>
+                      {groupsLoading ? (
+                        <Spinner />
+                      ) : groups && groups.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {groups.map((group) => (
+                            <Button
+                              key={group.id}
+                              variant={selectedGroup === group.id ? 'primary' : 'ghost'}
+                              onClick={() => setSelectedGroup(group.id)}
+                            >
+                              <Users size={16} className="mr-2" />
+                              {group.name}
+                              <Badge variant="default" className="ml-2">
+                                {group.user_count}
+                              </Badge>
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <Alert variant="warning">
+                          No groups found. Create groups first to manage group-based permissions.
+                        </Alert>
+                      )}
+                    </div>
+
+                    {selectedGroup && (
+                      <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">
+                          Page Permissions for Group: <Badge>{groups?.find(g => g.id === selectedGroup)?.name}</Badge>
+                        </h3>
+                        <div className="mb-4">
+                          <Alert variant="info">
+                            Groups take precedence over roles. If a user is in a group with permissions, those are used instead of role permissions.
+                            Disabling a parent path automatically disables all child paths.
+                          </Alert>
+                        </div>
+
+                        {groupPermissionsLoading ? (
+                          <Spinner />
+                        ) : navTree.length === 0 ? (
+                          <Alert variant="warning">
+                            No pages found. Pages are discovered from navigation items.
+                          </Alert>
+                        ) : (
+                          <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+                            {navTree.map(node => renderTreeNode(node, groupPermissionMap, handleGroupPermissionToggle))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {!selectedGroup && groups && groups.length > 0 && (
+                      <Alert variant="info">Select a group above to manage its page permissions.</Alert>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            ),
+          },
           {
             id: 'roles',
             label: 'Role Permissions',
@@ -254,13 +563,14 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Select Role</label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {roles.map((role) => (
                           <Button
                             key={role}
                             variant={selectedRole === role ? 'primary' : 'ghost'}
                             onClick={() => setSelectedRole(role)}
                           >
+                            <Shield size={16} className="mr-2" />
                             {role}
                           </Button>
                         ))}
@@ -279,44 +589,26 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                             </Alert>
                           </div>
                         ) : (
-                          <div className="mb-4">
-                            <Alert variant="info">
-                              All pages are enabled by default. Toggle off to restrict access for this role.
-                            </Alert>
-                          </div>
-                        )}
+                          <>
+                            <div className="mb-4">
+                              <Alert variant="info">
+                                Role permissions are used as a fallback when group permissions are not set.
+                                Disabling a parent path automatically disables all child paths.
+                              </Alert>
+                            </div>
 
-                        {rolePermissionsLoading ? (
-                          <Spinner />
-                        ) : (
-                          <div className="space-y-2">
-                            {allPages.length === 0 ? (
+                            {rolePermissionsLoading ? (
+                              <Spinner />
+                            ) : navTree.length === 0 ? (
                               <Alert variant="warning">
-                                No pages found. Pages are discovered from navigation items. Add pages to your feature packs
-                                or custom navigation to manage their permissions.
+                                No pages found. Pages are discovered from navigation items.
                               </Alert>
                             ) : (
-                              allPages.map((page) => {
-                                const isEnabled = rolePermissionMap.get(page.path) ?? true; // Default to enabled
-                                return (
-                                  <div
-                                    key={page.path}
-                                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                                  >
-                                    <div>
-                                      <div className="font-medium">{page.label || page.path}</div>
-                                      <div className="text-sm text-gray-500">{page.path}</div>
-                                    </div>
-                                    <Checkbox
-                                      checked={isEnabled}
-                                      onChange={(checked: boolean) => handleRolePermissionToggle(page.path, checked)}
-                                      disabled={mutating || selectedRole.toLowerCase() === 'admin'}
-                                    />
-                                  </div>
-                                );
-                              })
+                              <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+                                {navTree.map(node => renderTreeNode(node, rolePermissionMap, handleRolePermissionToggle, selectedRole.toLowerCase() === 'admin'))}
+                              </div>
                             )}
-                          </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -344,7 +636,7 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                           setUserOverrideModalOpen(true);
                         }}
                       >
-                        <UserCheck size={16} className="mr-2" />
+                        <Users size={16} className="mr-2" />
                         Add User Override
                       </Button>
                     </div>
@@ -352,44 +644,34 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                     {usersWithOverridesLoading ? (
                       <Spinner />
                     ) : (
-                      <DataTable
-                        columns={[
-                          {
-                            key: 'email',
-                            label: 'Email',
-                            render: (value: unknown) => (
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(value as string);
-                                  const user = usersData?.items.find((u) => u.email === value);
-                                  if (user) {
-                                    setSelectedUserForOverride(user);
-                                  }
-                                }}
-                                className="text-blue-600 hover:underline"
-                              >
-                                {value as string}
-                              </button>
-                            ),
-                          },
-                          {
-                            key: 'role',
-                            label: 'Role',
-                            render: (value: unknown) => <Badge variant="default">{value as string}</Badge>,
-                          },
-                          {
-                            key: 'override_count',
-                            label: 'Overrides',
-                            render: (value: unknown) => (
-                              <Badge variant="info">
-                                {(value as number) > 0 ? `${value} override${(value as number) > 1 ? 's' : ''}` : 'None'}
-                              </Badge>
-                            ),
-                          },
-                        ]}
-                        data={usersWithOverrides || []}
-                        emptyMessage="No users with overrides"
-                      />
+                      <div className="space-y-2">
+                        {(usersWithOverrides || []).map((user: any) => (
+                          <div
+                            key={user.email}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                            onClick={() => {
+                              setSelectedUser(user.email);
+                              const foundUser = usersData?.items.find((u) => u.email === user.email);
+                              if (foundUser) {
+                                setSelectedUserForOverride(foundUser);
+                              }
+                            }}
+                          >
+                            <div>
+                              <div className="font-medium">{user.email}</div>
+                              <div className="text-sm text-gray-500">
+                                Role: {user.role} • {user.override_count} override{user.override_count === 1 ? '' : 's'}
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </div>
+                        ))}
+                        {(!usersWithOverrides || usersWithOverrides.length === 0) && (
+                          <Alert variant="info">No users with overrides</Alert>
+                        )}
+                      </div>
                     )}
                   </div>
                 </Card>
@@ -420,7 +702,7 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                       ) : (
                         <div className="mb-4">
                           <Alert variant="info">
-                            User overrides take precedence over role permissions. Configure specific page access for this user.
+                            User overrides take precedence over both group and role permissions.
                           </Alert>
                         </div>
                       )}
@@ -436,7 +718,7 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                           ) : (
                             allPages.map((page) => {
                               const override = userOverrides?.find((o) => o.page_path === page.path);
-                              const isEnabled = override ? override.enabled : undefined; // undefined means use role default
+                              const isEnabled = override ? override.enabled : undefined;
                               return (
                                 <div
                                   key={page.path}
@@ -446,14 +728,14 @@ export function Permissions({ onNavigate }: PermissionsProps) {
                                     <div className="font-medium">{page.label || page.path}</div>
                                     <div className="text-sm text-gray-500">{page.path}</div>
                                     {isEnabled === undefined && (
-                                      <div className="text-xs text-gray-400 mt-1">Using role default</div>
+                                      <div className="text-xs text-gray-400 mt-1">Using group/role default</div>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <Checkbox
                                       checked={isEnabled ?? true}
                                       onChange={(checked: boolean) => handleUserOverrideToggle(selectedUser, page.path, checked)}
-                                      disabled={mutating || selectedUserForOverride.role?.toLowerCase() === 'admin'}
+                                      disabled={mutatingPermissions || selectedUserForOverride.role?.toLowerCase() === 'admin'}
                                     />
                                     {isEnabled !== undefined && selectedUserForOverride.role?.toLowerCase() !== 'admin' && (
                                       <Button
@@ -499,34 +781,31 @@ export function Permissions({ onNavigate }: PermissionsProps) {
           {usersLoading ? (
             <Spinner />
           ) : (
-            <DataTable
-              columns={[
-                {
-                  key: 'email',
-                  label: 'Email',
-                  render: (value) => value as string,
-                },
-                {
-                  key: 'role',
-                  label: 'Role',
-                  render: (value) => <Badge variant="default">{value as string}</Badge>,
-                },
-              ]}
-              data={(usersData?.items || []).map((user) => ({
-                email: user.email,
-                role: user.role || 'user',
-              }))}
-              onRowClick={(row) => {
-                const user = usersData?.items.find((u) => u.email === row.email);
-                if (user) {
-                  setSelectedUserForOverride(user);
-                  setSelectedUser(user.email);
-                  setUserOverrideModalOpen(false);
-                  setActiveTab('users');
-                }
-              }}
-              emptyMessage="No users found"
-            />
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {(usersData?.items || []).map((user) => (
+                <div
+                  key={user.email}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                  onClick={() => {
+                    setSelectedUserForOverride(user);
+                    setSelectedUser(user.email);
+                    setUserOverrideModalOpen(false);
+                    setActiveTab('users');
+                  }}
+                >
+                  <div>
+                    <div className="font-medium">{user.email}</div>
+                    <div className="text-sm text-gray-500">Role: {user.role || 'user'}</div>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    Select
+                  </Button>
+                </div>
+              ))}
+              {(!usersData?.items || usersData.items.length === 0) && (
+                <Alert variant="info">No users found</Alert>
+              )}
+            </div>
           )}
         </div>
       </Modal>
@@ -535,4 +814,3 @@ export function Permissions({ onNavigate }: PermissionsProps) {
 }
 
 export default Permissions;
-

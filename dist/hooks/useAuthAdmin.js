@@ -1089,6 +1089,286 @@ export function usePagePermissionsMutations() {
         error,
     };
 }
+export function useGroupPagePermissions(groupId) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const fetchPermissions = useCallback(async () => {
+        if (!groupId) {
+            setData([]);
+            setLoading(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            setError(null);
+            const result = await fetchWithAuth(`/admin/permissions/groups/${groupId}/pages`);
+            setData(result.permissions);
+        }
+        catch (e) {
+            setError(e);
+            setData(null);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [groupId]);
+    useEffect(() => {
+        fetchPermissions();
+    }, [fetchPermissions]);
+    return { data, loading, error, refresh: fetchPermissions };
+}
+export function useGroupPagePermissionsMutations() {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const setGroupPagePermission = useCallback(async (groupId, pagePath, enabled) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await fetchWithAuth(`/admin/permissions/groups/${groupId}/pages`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    page_path: pagePath,
+                    enabled,
+                }),
+            });
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    const deleteGroupPagePermission = useCallback(async (groupId, pagePath) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await fetchWithAuth(`/admin/permissions/groups/${groupId}/pages/${encodeURIComponent(pagePath)}`, {
+                method: 'DELETE',
+            });
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    return {
+        setGroupPagePermission,
+        deleteGroupPagePermission,
+        loading,
+        error,
+    };
+}
+export function useGroups() {
+    const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const refresh = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchWithAuth('/admin/groups');
+            setGroups(data);
+        }
+        catch (e) {
+            setError(e);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+    return { data: groups, loading, error, refresh };
+}
+export function useGroup(groupId) {
+    const [group, setGroup] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const refresh = useCallback(async () => {
+        if (!groupId) {
+            setGroup(null);
+            setLoading(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchWithAuth(`/admin/groups/${groupId}`);
+            setGroup(data);
+        }
+        catch (e) {
+            setError(e);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [groupId]);
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+    return { data: group, loading, error, refresh };
+}
+export function useGroupUsers(groupId) {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const refresh = useCallback(async () => {
+        if (!groupId) {
+            setUsers([]);
+            setLoading(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchWithAuth(`/admin/groups/${groupId}/users`);
+            setUsers(data);
+        }
+        catch (e) {
+            setError(e);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [groupId]);
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+    return { data: users, loading, error, refresh };
+}
+export function useUserGroups(userEmail) {
+    const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const refresh = useCallback(async () => {
+        if (!userEmail) {
+            setGroups([]);
+            setLoading(false);
+            return;
+        }
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await fetchWithAuth(`/admin/users/${encodeURIComponent(userEmail)}/groups`);
+            setGroups(data);
+        }
+        catch (e) {
+            setError(e);
+        }
+        finally {
+            setLoading(false);
+        }
+    }, [userEmail]);
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+    return { data: groups, loading, error, refresh };
+}
+export function useGroupMutations() {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const createGroup = useCallback(async (group) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchWithAuth('/admin/groups', {
+                method: 'POST',
+                body: JSON.stringify(group),
+            });
+            return data;
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    const updateGroup = useCallback(async (groupId, group) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchWithAuth(`/admin/groups/${groupId}`, {
+                method: 'PUT',
+                body: JSON.stringify(group),
+            });
+            return data;
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    const deleteGroup = useCallback(async (groupId) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await fetchWithAuth(`/admin/groups/${groupId}`, {
+                method: 'DELETE',
+            });
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    const addUserToGroup = useCallback(async (groupId, userEmail) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await fetchWithAuth(`/admin/groups/${groupId}/users/${encodeURIComponent(userEmail)}`, {
+                method: 'POST',
+            });
+            return data;
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    const removeUserFromGroup = useCallback(async (groupId, userEmail) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await fetchWithAuth(`/admin/groups/${groupId}/users/${encodeURIComponent(userEmail)}`, {
+                method: 'DELETE',
+            });
+        }
+        catch (e) {
+            setError(e);
+            throw e;
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    return {
+        createGroup,
+        updateGroup,
+        deleteGroup,
+        addUserToGroup,
+        removeUserFromGroup,
+        loading,
+        error,
+    };
+}
 // Export types and error class
 export { AuthAdminError };
 //# sourceMappingURL=useAuthAdmin.js.map

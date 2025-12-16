@@ -307,6 +307,83 @@ export declare function usePagePermissionsMutations(): {
     loading: boolean;
     error: Error | null;
 };
+interface GroupPagePermission {
+    id: string;
+    page_path: string;
+    enabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+export declare function useGroupPagePermissions(groupId: string | null): {
+    data: GroupPagePermission[] | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+export declare function useGroupPagePermissionsMutations(): {
+    setGroupPagePermission: (groupId: string, pagePath: string, enabled: boolean) => Promise<void>;
+    deleteGroupPagePermission: (groupId: string, pagePath: string) => Promise<void>;
+    loading: boolean;
+    error: Error | null;
+};
+interface Group {
+    id: string;
+    name: string;
+    description: string | null;
+    metadata: Record<string, unknown>;
+    user_count: number;
+    created_at: string;
+    updated_at: string;
+}
+interface UserGroup {
+    id: string;
+    user_email: string;
+    group_id: string;
+    group_name: string;
+    created_at: string;
+    created_by: string | null;
+}
+export declare function useGroups(): {
+    data: Group[];
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+export declare function useGroup(groupId: string | null): {
+    data: Group | null;
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+export declare function useGroupUsers(groupId: string | null): {
+    data: UserGroup[];
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+export declare function useUserGroups(userEmail: string | null): {
+    data: UserGroup[];
+    loading: boolean;
+    error: Error | null;
+    refresh: () => Promise<void>;
+};
+export declare function useGroupMutations(): {
+    createGroup: (group: {
+        name: string;
+        description?: string | null;
+        metadata?: Record<string, unknown>;
+    }) => Promise<Group>;
+    updateGroup: (groupId: string, group: {
+        name?: string;
+        description?: string | null;
+        metadata?: Record<string, unknown>;
+    }) => Promise<Group>;
+    deleteGroup: (groupId: string) => Promise<void>;
+    addUserToGroup: (groupId: string, userEmail: string) => Promise<UserGroup>;
+    removeUserFromGroup: (groupId: string, userEmail: string) => Promise<void>;
+    loading: boolean;
+    error: Error | null;
+};
 export { AuthAdminError };
-export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig };
+export type { User, Session, AuditLogEntry, Invite, Stats, PaginatedResponse, AuthAdminConfig, Group, UserGroup, GroupPagePermission };
 //# sourceMappingURL=useAuthAdmin.d.ts.map
